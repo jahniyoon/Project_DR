@@ -136,6 +136,7 @@ public class DungeonCreator : MonoBehaviour
 
     // 그래픽 설정
     public Material material;  // 던전 바닥의 재질
+    public Material roopMaterial;   // 지붕의 마테리얼
 
     // 방 모양 수정자 설정
     //[Range(0.0f, 0.3f)]
@@ -172,6 +173,7 @@ public class DungeonCreator : MonoBehaviour
     public GameObject wallVertical;
     public GameObject wallHorizontal;
     public GameObject wallBreakdown;
+    public Material twoFloorWallMat;
     // 이 오브젝트는 프리펩이며 커스텀 방에서 막힌 벽을 뚫어주는데 사용될거임
     // 벽이 한개만 있는게 아닌 3단 으로 쌓여있기에 이렇게 사용
     public GameObject demolisherWall;
@@ -187,7 +189,14 @@ public class DungeonCreator : MonoBehaviour
     public GameObject exitObjPrefab;        // !현재 위치값은 매직넘버로 이루어져있음
     public GameObject[] bossMonsterSkin;      // 보스몬스터 인형
     public GameObject[] bossMonsterCapsule;   // 보스몬스터 본체
-
+    [SerializeField] private int[] _bossMonsterIDs =
+    {
+        100001,     // [1층]보스 "눈"
+        100002,     // [2층]보스 "드라"
+        100003,     // [3층]보스 "보헌 블레허"
+        100004,     // [4층]보스 "리퍼"
+        100005      // [5층]보스 "드뷔시"
+    };
 
 
     // 부숴지는벽이 나올 확률 
@@ -237,7 +246,7 @@ public class DungeonCreator : MonoBehaviour
         isReCreate = false;
         DungeonInspectionManager.dungeonManagerInstance.FloorCollision = false;
         DungeonInspectionManager.dungeonManagerInstance.isEndCreateFloor = false;
-
+        GameManager.isClearRoomList.Clear();
         StopAllCoroutines();
         bspMeshList.Clear();
         bspRoom.Clear();
@@ -254,7 +263,7 @@ public class DungeonCreator : MonoBehaviour
 
         // 벽 부모 오브젝트 생성
         GameObject wallParent = new GameObject("WallParent");
-        wallParent.transform.parent = transform;        
+        wallParent.transform.parent = transform;
         possibleDoorVerticalPosition = new List<Vector3>();
         possibleDoorHorizontalPosition = new List<Vector3>();
         possibleWallHorizontalPosition = new List<Vector3>();
@@ -299,7 +308,7 @@ public class DungeonCreator : MonoBehaviour
         CheckRecreate();
 
         //GFunc.Log($"바닥생성이후 isReCreate값 :{isReCreate}");
-        if (isReCreate == true)
+        if (isReCreate == true || floorParent.transform.childCount > 6)
         {
             GFunc.Log($"던전 재생성 호출");
             CreateDungeon();
@@ -369,7 +378,7 @@ public class DungeonCreator : MonoBehaviour
         PlayerStartRoomBuild(bspMeshList[0]);      // LEGACYPAram : floorParent
         //GFunc.Log($"List 마지막에 들어온얘가 뭐지? -> {bspMeshList[^1].name}");
         int tempBossChildIdx = this.transform.GetChild(1).childCount;
-        BossRoomBuild(this.transform.GetChild(1).GetChild(tempBossChildIdx -1).gameObject);
+        BossRoomBuild(this.transform.GetChild(1).GetChild(tempBossChildIdx - 1).gameObject);
         //BossRoomBuild(bossRoomFloorObj);
         NextStageRoomBuild();
 
@@ -403,8 +412,18 @@ public class DungeonCreator : MonoBehaviour
 
 
         //DungeonInspectionManager.dungeonManagerInstance.isCreateDungeonEnd = true;
-        GFunc.Log("던전 생성 끝");
 
+        CheckRecreate();
+
+        if (isReCreate == true)
+        {
+            GFunc.Log($"2차 검수 불통 던전 재생성 호출");
+            CreateDungeon();
+            return;
+        }
+        else { /*PASS*/ }
+
+        GFunc.Log("던전 생성 끝");
     }       // CreateDungeonBuildTime()
 
 
@@ -460,7 +479,7 @@ public class DungeonCreator : MonoBehaviour
         {
             _corridor.gameObject.AddComponent<BossRoomCorridorDoorCreate>();
         }
-        else if(_isNextRoom == true)
+        else if (_isNextRoom == true)
         {
             _corridor.gameObject.AddComponent<NextStageRoomCorridorDoorCreate>();
         }
@@ -525,13 +544,8 @@ public class DungeonCreator : MonoBehaviour
 
         if (bspListClone[0] != null)
         {
-            foreach (var bsp in bspListClone)
-            {
-                bsp.AddComponent<NullRoom>();
-
-            }
-            bspListClone.Clear();
-        }       // 만약 3으로 나누었을때 전부 방을 기입하고도 List속에 무언가 있다면 빈방으로 설정
+            CreateDungeon();
+        }       
 
         //GFunc.LogFormat("각방 이벤트 선정 끝");
 
@@ -584,6 +598,8 @@ public class DungeonCreator : MonoBehaviour
         mesh.uv = uvs;
         mesh.triangles = triangles;
         mesh.triangles = mesh.triangles.Reverse().ToArray();
+        mesh.RecalculateNormals(); // JH : 쉐이더 빛 생성을 위한 노멀 생성
+        mesh.RecalculateTangents();
 
 
         GameObject dungeonFloor = new GameObject("Mesh" + InItNum + bottomLeftCorner,
@@ -617,7 +633,9 @@ public class DungeonCreator : MonoBehaviour
         dungeonFloor.transform.position = Vector3.zero;
         dungeonFloor.transform.localScale = Vector3.one;
         dungeonFloor.GetComponent<MeshFilter>().mesh = mesh;
-        dungeonFloor.GetComponent<MeshRenderer>().material = material;
+        dungeonFloor.GetComponent<MeshRenderer>().material = roopMaterial;
+        dungeonFloor.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;  // JH : 그림자 꺼주기
+
 
         dungeonFloor.transform.parent = roopParent.transform;
         dungeonFloor.transform.position = roopYpos;
@@ -696,6 +714,9 @@ public class DungeonCreator : MonoBehaviour
         wallObjClone.transform.localScale = new Vector3(1f, 22f, 1f);
         wallPos.y = +(tempWallPosY * 1.33f) + (wallObjClone.transform.localScale.y / 2);
         wallObjClone.GetComponent<MeshRenderer>().material.mainTextureScale = new Vector2(1f, 9f);
+        wallObjClone.GetComponent<MeshRenderer>().material = twoFloorWallMat;
+        wallObjClone.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;  // JH : 그림자 꺼주기
+
         //wallPos.y = +((2.5f * 2f) / 2) + (wallObjClone.transform.localScale.y / 2); 나중에 이 방식으로 식 바꾸기 시도해봐야겠음
         wallObjClone.transform.position = wallPos;
         wallObjClone.tag = "Wall";
@@ -757,7 +778,8 @@ public class DungeonCreator : MonoBehaviour
         mesh.vertices = vertices;
         mesh.uv = uvs;
         mesh.triangles = triangles;
-
+        mesh.RecalculateNormals(); // JH : 쉐이더 빛 생성을 위한 노멀 생성
+        mesh.RecalculateTangents();
 
         GameObject dungeonFloor = new GameObject("Mesh" + InItNum + bottomLeftCorner,
             typeof(MeshFilter), typeof(MeshRenderer), typeof(BoxCollider));
@@ -799,6 +821,7 @@ public class DungeonCreator : MonoBehaviour
 
         dungeonFloor.GetComponent<MeshFilter>().mesh = mesh;
         dungeonFloor.GetComponent<MeshRenderer>().material = material;
+        dungeonFloor.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;  // JH : 그림자 꺼주기
 
         // Obj에게 자신 꼭지점 좌표를 담을수 있는 컴포넌트 추가
         dungeonFloor.AddComponent<FloorMeshPos>().InItPos(bottomLeftV, bottomRightV, topLeftV, topRightV);
@@ -1063,18 +1086,19 @@ public class DungeonCreator : MonoBehaviour
         //GFunc.LogFormat("FPChildCount -> {0}", floorParent.transform.childCount);
 
         // 방의 하단 중앙위치
-        float bspfirstRoomBottomCenterPoint = (firstRoomPos.bottomLeftCorner.x + firstRoomPos.bottomRightCorner.x) / 2;
+        float bspfirstRoomBottomCenterPoint = (firstRoomPos.bottomLeftCorner.x + firstRoomPos.bottomRightCorner.x) * 0.5f;
         // 방의 상단 중앙위치
-        float bspFirstRoomTopCenterPoint = (firstRoomPos.topLeftCorner.x + firstRoomPos.topRightCorner.x) / 2;
+        float bspFirstRoomTopCenterPoint = (firstRoomPos.topLeftCorner.x + firstRoomPos.topRightCorner.x) * 0.5f;
 
         //// 바닥 메시 생성을 위한 꼭지점 좌표 설정
         Vector3 topLeftV = new Vector3
-            (bspfirstRoomBottomCenterPoint - (pcRoomWidth / 2), 0f, firstRoomPos.bottomLeftCorner.z - pcRoomDistance);
+            (bspfirstRoomBottomCenterPoint - (pcRoomWidth * 0.5f), 0f, firstRoomPos.bottomLeftCorner.z - pcRoomDistance);
         Vector3 topRightV = new Vector3
-            (bspfirstRoomBottomCenterPoint + (pcRoomWidth / 2), 0f, firstRoomPos.bottomRightCorner.z - pcRoomDistance);
+            (bspfirstRoomBottomCenterPoint + (pcRoomWidth * 0.5f), 0f, firstRoomPos.bottomRightCorner.z - pcRoomDistance);
         Vector3 bottomLeftV = new Vector3(topLeftV.x, 0f, topLeftV.z - pcRoomHeight);
         Vector3 bottomRightV = new Vector3(topRightV.x, 0f, topLeftV.z - pcRoomHeight);
 
+        //GFunc.Log($"11PCMeshPos!\n pcRoomWidth : {pcRoomWidth}\nPCRoomHeight : {pcRoomHeight}\n PCRoomDistance : {pcRoomDistance}");
         // 바닥 메시를 위한 꼭지점 배열 생성
         Vector3[] vertices = new Vector3[]
         {
@@ -1107,6 +1131,10 @@ public class DungeonCreator : MonoBehaviour
         mesh.vertices = vertices;
         mesh.uv = uvs;
         mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+        mesh.RecalculateTangents();
+
+        //GFunc.Log($"PCMeshPos!\n TopLeft : {topLeftV}\n TopRight : {topRightV}\n BottomLeft :{bottomLeftV}\n BottomRight : {bottomRightV}");
 
 
         GameObject dungeonFloor = new GameObject("PCRoomMesh" + InItNum + bottomLeftV,
@@ -1128,7 +1156,7 @@ public class DungeonCreator : MonoBehaviour
         //메시의 중간지점을 구하고 콜라이더를 중앙 지점에 놔주기
         //Center
         //Vector3 colCenter = new Vector3((bottomLeftV.x + bottomRightV.x) / 2, 0, (topLeftV.z + bottomLeftV.z) / 2);
-        Vector3 colCenter = new Vector3((bottomLeftV.x + bottomRightV.x) / 2, floorYPos, (topLeftV.z + bottomLeftV.z) / 2);
+        Vector3 colCenter = new Vector3((bottomLeftV.x + bottomRightV.x) * 0.5f, floorYPos, (topLeftV.z + bottomLeftV.z) / 2);
         BoxCollider floorCol = dungeonFloor.GetComponent<BoxCollider>();
         floorCol.center = colCenter;
         // Size
@@ -1151,6 +1179,7 @@ public class DungeonCreator : MonoBehaviour
 
         dungeonFloor.GetComponent<MeshFilter>().mesh = mesh;
         dungeonFloor.GetComponent<MeshRenderer>().material = material;
+        dungeonFloor.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;  // JH : 그림자 꺼주기
 
         // Obj에게 자신 꼭지점 좌표를 담을수 있는 컴포넌트 추가
         dungeonFloor.AddComponent<FloorMeshPos>().InItPos(bottomLeftV, bottomRightV, topLeftV, topRightV);
@@ -1175,7 +1204,7 @@ public class DungeonCreator : MonoBehaviour
     /// </summary>
     private void PlayerStartRoomBuild(GameObject _bspFloorParent)
     {
-        GameObject wallParnet = new GameObject("CustomRoomWallParent");        
+        GameObject wallParnet = new GameObject("CustomRoomWallParent");
         wallParnet.transform.parent = pcRoomFloorObj.transform;
 
         // 처음으로 매쉬가 생성된 방의 꼭지점Pos 얻기
@@ -1183,15 +1212,15 @@ public class DungeonCreator : MonoBehaviour
         FloorMeshPos firstRoomPos = _bspFloorParent.transform.GetComponent<FloorMeshPos>();
         //GFunc.Log($"FloorMeshPos == null? : {firstRoomPos == null}");
         // 방의 하단 중앙위치
-        float bspfirstRoomBottomCenterPoint = (firstRoomPos.bottomLeftCorner.x + firstRoomPos.bottomRightCorner.x) / 2;
+        float bspfirstRoomBottomCenterPoint = (firstRoomPos.bottomLeftCorner.x + firstRoomPos.bottomRightCorner.x) * 0.5f;
         // 방의 상단 중앙위치
-        float bspFirstRoomTopCenterPoint = (firstRoomPos.topLeftCorner.x + firstRoomPos.topRightCorner.x) / 2;
+        float bspFirstRoomTopCenterPoint = (firstRoomPos.topLeftCorner.x + firstRoomPos.topRightCorner.x) * 0.5f;
 
 
         CustomRoomCorridorCreateMinusPos(wallParnet, playerRoomCornerPos.bottomLeftCorner, playerRoomCornerPos.bottomRightCorner
             , playerRoomCornerPos.topLeftCorner, playerRoomCornerPos.topRightCorner, false);
 
-        CustomRoomCorridorMeshCreate(false, bspfirstRoomBottomCenterPoint, bspFirstRoomTopCenterPoint, 
+        CustomRoomCorridorMeshCreate(false, bspfirstRoomBottomCenterPoint, bspFirstRoomTopCenterPoint,
             firstRoomPos, _bspFloorParent, false, false, false);
 
         CreatePlayerRoomRoof(playerRoomCornerPos.bottomLeftCorner, playerRoomCornerPos.bottomRightCorner,
@@ -1283,7 +1312,7 @@ public class DungeonCreator : MonoBehaviour
     /// isPositive : PC = flase ,Boss : true, NextStage : ture
     private void CustomRoomCorridorMeshCreate(bool isPositive_, float bspRoomBottomCenterPoint_,
         float bspRoomTopCenterPoint_, FloorMeshPos bspRoomPos_, GameObject parentRoom_,
-        bool _isBspRoom, bool _isBossRoom,bool _isNextRoom)
+        bool _isBspRoom, bool _isBossRoom, bool _isNextRoom)
     {
         Vector3 topLeftV;
         Vector3 topRightV;
@@ -1294,9 +1323,9 @@ public class DungeonCreator : MonoBehaviour
         {       // if : CustomPCRoom
             // 바닥 메시 생성을 위한 꼭지점 좌표 설정
             topLeftV = new Vector3
-                (bspRoomBottomCenterPoint_ - (corridorWidth / 2), 0f, bspRoomPos_.bottomLeftCorner.z);
+                (bspRoomBottomCenterPoint_ - (corridorWidth * 0.5f), 0f, bspRoomPos_.bottomLeftCorner.z);
             topRightV = new Vector3
-                (bspRoomBottomCenterPoint_ + (corridorWidth / 2), 0f, bspRoomPos_.bottomLeftCorner.z);
+                (bspRoomBottomCenterPoint_ + (corridorWidth * 0.5f), 0f, bspRoomPos_.bottomLeftCorner.z);
 
             bottomLeftV = new Vector3(topLeftV.x, 0f, topLeftV.z - pcRoomDistance);
             bottomRightV = new Vector3(topRightV.x, 0f, topLeftV.z - pcRoomDistance);
@@ -1346,6 +1375,8 @@ public class DungeonCreator : MonoBehaviour
         mesh.vertices = vertices;
         mesh.uv = uvs;
         mesh.triangles = triangles;
+        mesh.RecalculateNormals(); // JH : 쉐이더 빛 생성을 위한 노멀 생성
+        mesh.RecalculateTangents();
 
         GameObject dungeonFloor;
         if (isPositive_ == false)
@@ -1391,11 +1422,14 @@ public class DungeonCreator : MonoBehaviour
 
         dungeonFloor.GetComponent<MeshFilter>().mesh = mesh;
         dungeonFloor.GetComponent<MeshRenderer>().material = material;
+        dungeonFloor.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;  // JH : 그림자 꺼주기
 
         // Obj에게 자신 꼭지점 좌표를 담을수 있는 컴포넌트 추가
         dungeonFloor.AddComponent<FloorMeshPos>().InItPos(bottomLeftV, bottomRightV, topLeftV, topRightV);
 
         dungeonFloor.transform.parent = parentRoom_.transform;
+
+        CreateDungeonInspection(colCenter, bottomLeftV, bottomRightV, topLeftV, dungeonFloor);
 
         if (isPositive_ == false)
         { CustomRoomCorridorCreateMinusPos(dungeonFloor, bottomLeftV, bottomRightV, topLeftV, topRightV, true); }
@@ -1435,7 +1469,11 @@ public class DungeonCreator : MonoBehaviour
         wallObjClone = Instantiate(wallPrefab, wallPos, Quaternion.identity, wallParent.transform);
         wallObjClone.transform.localScale = new Vector3(1f, 22f, 1f);
         wallObjClone.GetComponent<MeshRenderer>().material.mainTextureScale = new Vector2(1f, 9f);
+        wallObjClone.GetComponent<MeshRenderer>().material = twoFloorWallMat;
+        wallObjClone.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;  // JH : 그림자 꺼주기
+
         wallPos.y = +(tempWallPosY * 1.33f) + (wallObjClone.transform.localScale.y / 2);
+
         //wallPos.y = +((2.5f * 2f) / 2) + (wallObjClone.transform.localScale.y / 2); 나중에 이 방식으로 식 바꾸기 시도해봐야겠음
         wallObjClone.transform.position = wallPos;
         wallObjClone.tag = "Wall";
@@ -1501,6 +1539,8 @@ public class DungeonCreator : MonoBehaviour
         mesh.uv = uvs;
         mesh.triangles = triangles;
         mesh.triangles = mesh.triangles.Reverse().ToArray();
+        mesh.RecalculateNormals(); // JH : 쉐이더 빛 생성을 위한 노멀 생성
+        mesh.RecalculateTangents();
 
         GameObject dungeonFloor = new GameObject("Mesh" + InItNum + bottomLeftV_,
             typeof(MeshFilter), typeof(MeshRenderer), typeof(BoxCollider));
@@ -1533,7 +1573,8 @@ public class DungeonCreator : MonoBehaviour
         dungeonFloor.transform.position = Vector3.zero;
         dungeonFloor.transform.localScale = Vector3.one;
         dungeonFloor.GetComponent<MeshFilter>().mesh = mesh;
-        dungeonFloor.GetComponent<MeshRenderer>().material = material;
+        dungeonFloor.GetComponent<MeshRenderer>().material = roopMaterial;
+        dungeonFloor.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;  // JH : 그림자 꺼주기
 
         dungeonFloor.transform.parent = roopParent.transform;
         dungeonFloor.transform.position = roopYpos;
@@ -1584,6 +1625,8 @@ public class DungeonCreator : MonoBehaviour
         mesh.uv = uvs;
         mesh.triangles = triangles;
         mesh.triangles = mesh.triangles.Reverse().ToArray();
+        mesh.RecalculateNormals(); // JH : 쉐이더 빛 생성을 위한 노멀 생성
+        mesh.RecalculateTangents();
 
         GameObject dungeonFloor = new GameObject("Mesh" + InItNum + bottomLeftV_,
             typeof(MeshFilter), typeof(MeshRenderer), typeof(BoxCollider));
@@ -1619,7 +1662,8 @@ public class DungeonCreator : MonoBehaviour
         dungeonFloor.transform.position = Vector3.zero;
         dungeonFloor.transform.localScale = Vector3.one;
         dungeonFloor.GetComponent<MeshFilter>().mesh = mesh;
-        dungeonFloor.GetComponent<MeshRenderer>().material = material;
+        dungeonFloor.GetComponent<MeshRenderer>().material = roopMaterial;
+        dungeonFloor.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;  // JH : 그림자 꺼주기
 
         dungeonFloor.transform.parent = roopParent.transform;
         dungeonFloor.transform.position = roopYpos;
@@ -1678,7 +1722,8 @@ public class DungeonCreator : MonoBehaviour
         mesh.vertices = vertices;
         mesh.uv = uvs;
         mesh.triangles = triangles;
-
+        mesh.RecalculateNormals(); // JH : 쉐이더 빛 생성을 위한 노멀 생성
+        mesh.RecalculateTangents();
 
         GameObject dungeonFloor = new GameObject("BossRoomMesh" + InItNum + bottomLeftV,
             typeof(MeshFilter), typeof(MeshRenderer), typeof(BoxCollider));
@@ -1720,6 +1765,7 @@ public class DungeonCreator : MonoBehaviour
 
         dungeonFloor.GetComponent<MeshFilter>().mesh = mesh;
         dungeonFloor.GetComponent<MeshRenderer>().material = material;
+        dungeonFloor.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;  // JH : 그림자 꺼주기
 
         // Obj에게 자신 꼭지점 좌표를 담을수 있는 컴포넌트 추가
         dungeonFloor.AddComponent<FloorMeshPos>().InItPos(bottomLeftV, bottomRightV, topLeftV, topRightV);
@@ -1727,7 +1773,7 @@ public class DungeonCreator : MonoBehaviour
 
         CreateDungeonInspection(colCenter, bottomLeftV, bottomRightV, topLeftV, dungeonFloor);
 
-       // CustomRoomCorridorCreatePlusPos(wallParnet, bottomLeftV, bottomRightV, topLeftV, topRightV, false);        
+        // CustomRoomCorridorCreatePlusPos(wallParnet, bottomLeftV, bottomRightV, topLeftV, topRightV, false);        
         //CustomRoomCorridorMeshCreate(true, bspLastRoomBottomCenterPoint, bspLastRoomTopCenterPoint, lastRoomPos, dungeonFloor,false,true,false);
         //CreateCustomRoomRoof(bottomLeftV, bottomRightV, topLeftV, topRightV, dungeonFloor);
         //CreateDungeonInspection(colCenter, bottomLeftV, bottomRightV, topLeftV, dungeonFloor);
@@ -1768,7 +1814,7 @@ public class DungeonCreator : MonoBehaviour
     /// <summary>
     /// 보스방 바닥에 보스 스폰과 사망 처리 해주는 컴포넌트 Add해주는 함수
     /// </summary>    
-    private void BossRoomAddComponent(FloorMeshPos _floorMeshPos,GameObject _dungeonFloor,Vector3 _centerPos)
+    private void BossRoomAddComponent(FloorMeshPos _floorMeshPos, GameObject _dungeonFloor, Vector3 _centerPos)
     {
         #region LEGACY
         //GameObject monsterParent = new GameObject("BossMonster");
@@ -1788,8 +1834,11 @@ public class DungeonCreator : MonoBehaviour
         //bossClone = Instantiate(bossMonsterCapsule, bossPos, Quaternion.identity, monsterParent.transform);
         #endregion LEGACY
 
-        _dungeonFloor.AddComponent<BossRoom>().VariablesInIt(_floorMeshPos, bossMonsterSkin[GameManager.instance.nowFloor -1], bossMonsterCapsule[GameManager.instance.nowFloor -1], _dungeonFloor.transform,_centerPos);
+        // LEGACY:
+        //_dungeonFloor.AddComponent<BossRoom>().VariablesInIt(_floorMeshPos, bossMonsterSkin[GameManager.instance.nowFloor - 1], bossMonsterCapsule[GameManager.instance.nowFloor - 1], _dungeonFloor.transform, _centerPos);
 
+        int bossID = _bossMonsterIDs[GameManager.instance.nowFloor - 1];
+        _dungeonFloor.AddComponent<BossRoom>().NewVariablesInIt(_floorMeshPos, bossID, _dungeonFloor.transform, _centerPos);
     }       // CreateBossMonster()
 
     /// <summary>
@@ -1859,17 +1908,17 @@ public class DungeonCreator : MonoBehaviour
     {
 
         // 방의 하단 중앙위치
-        float bspLastRoomBottomCenterPoint = (bossRoomCornerPos.bottomLeftCorner.x + bossRoomCornerPos.bottomRightCorner.x) / 2;
+        float bspLastRoomBottomCenterPoint = (bossRoomCornerPos.bottomLeftCorner.x + bossRoomCornerPos.bottomRightCorner.x) * 0.5f;
         // 방의 상단 중앙위치
-        float bspLastRoomTopCenterPoint = (bossRoomCornerPos.topLeftCorner.x + bossRoomCornerPos.topRightCorner.x) / 2;
+        float bspLastRoomTopCenterPoint = (bossRoomCornerPos.topLeftCorner.x + bossRoomCornerPos.topRightCorner.x) * 0.5f;
 
         //// 바닥 메시 생성을 위한 꼭지점 좌표 설정
         Vector3 bottomLeftV = new Vector3
-            (bspLastRoomTopCenterPoint - (bossRoomWidth / 2), 0f, bossRoomCornerPos.topLeftCorner.z + bossRoomDistance);
+            (bspLastRoomTopCenterPoint - (nextStageRoomWidth * 0.5f), 0f, bossRoomCornerPos.topLeftCorner.z + nextStageRoomDistance);
         Vector3 bottomRightV = new Vector3
-            (bspLastRoomTopCenterPoint + (bossRoomWidth / 2), 0f, bossRoomCornerPos.topRightCorner.z + bossRoomDistance);
-        Vector3 topLeftV = new Vector3(bottomLeftV.x, 0f, bottomLeftV.z + bossRoomHeight);
-        Vector3 topRightV = new Vector3(bottomRightV.x, 0f, bottomRightV.z + bossRoomHeight);
+            (bspLastRoomTopCenterPoint + (nextStageRoomWidth * 0.5f), 0f, bossRoomCornerPos.topRightCorner.z + nextStageRoomDistance);
+        Vector3 topLeftV = new Vector3(bottomLeftV.x, 0f, bottomLeftV.z + nextStageRoomHeight);
+        Vector3 topRightV = new Vector3(bottomRightV.x, 0f, bottomRightV.z + nextStageRoomHeight);
 
         // 바닥 메시를 위한 꼭지점 배열 생성
         Vector3[] vertices = new Vector3[]
@@ -1998,7 +2047,7 @@ public class DungeonCreator : MonoBehaviour
 
         CreateExitObj(nextStageRoomCornerPos.bottomLeftCorner, nextStageRoomCornerPos.bottomRightCorner,
             nextStageRoomCornerPos.topLeftCorner, nextStageRoomCornerPos.topRightCorner, nextStageFloorObj);
-        
+
     }       // NextStageRoomBuild()
 
 
@@ -2152,7 +2201,7 @@ public class DungeonCreator : MonoBehaviour
 
     private void CheckRecreate()
     {
-        if(DungeonInspectionManager.dungeonManagerInstance.FloorCollision == true)
+        if (DungeonInspectionManager.dungeonManagerInstance.FloorCollision == true)
         {
             isReCreate = true;
         }
@@ -2168,7 +2217,7 @@ public class DungeonCreator : MonoBehaviour
 
         CheckRecreate();
 
-        if(isReCreate == false)
+        if (isReCreate == false)
         {
             CreateDungeonBuildTime();
         }

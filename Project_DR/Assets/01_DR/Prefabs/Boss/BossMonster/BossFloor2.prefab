@@ -653,7 +653,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4778c52f465bea441acaffe7c31b9755, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  nowDialogueId: 0
   npcTriggerType: 0
+  isTryCommunity: 0
   isComunity: 0
   isReadyToAutoComunication: 0
   boss: 1
@@ -669,8 +671,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 34858faa094922048a47c3ed5e46bd70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  angleRange: 30
-  radius: 3
   bossHPSlider: {fileID: 2270355668446506582}
   bossState: {fileID: 768372346152985313, guid: ad6c9c3ea99392e4f991bb97e564f478,
     type: 3}
@@ -693,21 +693,25 @@ MonoBehaviour:
   bossProjectileId: 6910
   bossProjectileID: 6914
   bossProjectileBounceId: 6912
+  bossProjectileLazerId: 6915
   power: 5
   lazerPort: {fileID: 3434727105787546965}
   lazer: {fileID: 7801054870893074991, guid: 9de885b41bc52fe488e338a87491f2a7, type: 3}
   lazerFire: {fileID: 2981110298664549651, guid: 3727415ae6fdff740af6dbabe736138b,
     type: 3}
+  waitLazer: 0
   bulletCount: 0
   smallBulletPrefab: {fileID: 3016696864302411366, guid: 9c76011e52345e24293d9f04f36837d9,
     type: 3}
   delayTime: 0
   destoryTime: 0
   speed: 0
+  waitBullet: 0
   bounce: {fileID: 548648308873678835, guid: dfd6ac752cdbe2245a1d034e27f13688, type: 3}
   bounceCount: 0
   destoryTimeBounce: 0
   speedBounce: 0
+  waitBounce: 0
   target: {fileID: 0}
   player: {fileID: 0}
   knockBack: {fileID: 0}
@@ -725,15 +729,18 @@ MonoBehaviour:
   isStart: 0
   isBounce: 0
   isBrick: 0
+  isLazerCoroutineRunning: 0
   patternInterval: 0
   bigBrick: {fileID: 2771416323480820311, guid: d440c508ec26253479dd7347cc62eccb,
     type: 3}
   destroyTimeBrick: 0
   brickCount: 0
+  waitBrick: 0
   npc: {fileID: 0}
   bossMeet:
     m_PersistentCalls:
       m_Calls: []
+  bossStartPosition: {fileID: 2892640037052260477}
 --- !u!1001 &4593273510423176173
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -741,6 +748,11 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 4785171361456838417}
     m_Modifications:
+    - target: {fileID: 1083919250608983426, guid: 047c66b9c0772b84ebaca3f8af8f3672,
+        type: 3}
+      propertyPath: m_SortingLayerID
+      value: -418652649
+      objectReference: {fileID: 0}
     - target: {fileID: 3261263422036526676, guid: 047c66b9c0772b84ebaca3f8af8f3672,
         type: 3}
       propertyPath: m_RootOrder
@@ -800,6 +812,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: NPCCanvasPrefab
+      objectReference: {fileID: 0}
+    - target: {fileID: 7541618779775089935, guid: 047c66b9c0772b84ebaca3f8af8f3672,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 047c66b9c0772b84ebaca3f8af8f3672, type: 3}
@@ -991,6 +1008,11 @@ PrefabInstance:
       propertyPath: m_AnchorMax.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2386814848775548687, guid: efa41f7184fdae84f92637f91dfc44dd,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6116199091966207024, guid: efa41f7184fdae84f92637f91dfc44dd,
         type: 3}
       propertyPath: m_Pivot.x
@@ -1100,6 +1122,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: BossHP
+      objectReference: {fileID: 0}
+    - target: {fileID: 7702902388475515977, guid: efa41f7184fdae84f92637f91dfc44dd,
+        type: 3}
+      propertyPath: m_Layer
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 8243699624858590263, guid: efa41f7184fdae84f92637f91dfc44dd,
         type: 3}

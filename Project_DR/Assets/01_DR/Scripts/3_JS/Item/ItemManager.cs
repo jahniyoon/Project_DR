@@ -96,6 +96,11 @@ public class ItemManager : MonoBehaviour
 
             // 인벤토리 정렬 및 PlayerInventoryUI 새로고침
             _inventory.SortAndUpdatePlayerInventoryUI();
+
+            // 인벤토리 추가 효과음 출력
+            AudioManager.Instance.AddSFX("SFX_Inventory_Acquirement");
+            AudioManager.Instance.PlaySFX("SFX_Inventory_Acquirement");
+
         }
         catch (Exception ex)
         {
@@ -192,12 +197,29 @@ public class ItemManager : MonoBehaviour
         GameObject item = CreateItem(pos, id, amount, true);
         item.transform.SetParent(parent);
         item.transform.localPosition = pos;
-        item.GetComponent<ItemColliderHandler>().enabled = false;
-        item.GetComponent<Grabbable>().enabled = false;
+        ItemColliderHandler itemColliderHandler = item.GetComponent<ItemColliderHandler>();
+        Grabbable grabbable = item.GetComponent<Grabbable>();
+        if (itemColliderHandler != null) { itemColliderHandler.enabled = false; }
+        if (grabbable != null) { grabbable.enabled = false; }
 
         return item;
     }
 
+    // 상점용 구매 아이템 생성
+    public GameObject CreateShopItem(Vector3 pos, int id, int amount = 1, bool isTempItem = false)
+    {
+        // 아이템 생성 & 아이템 사용 불가능하게 설정
+        GameObject item = CreateItem(pos, id, amount, isTempItem);
+        UseItem useItem = item.GetComponent<UseItem>();
+        if (useItem != null)
+        {
+            Destroy(useItem);
+        }
+
+        return item;
+    }
+
+    // 아이템 생성
     public GameObject CreateItem(Vector3 pos, int id, int amount = 1, bool isTempItem = false)
     {
         /////////////////////////////////////////////
@@ -228,7 +250,6 @@ public class ItemManager : MonoBehaviour
             else if (ItemDataManager.SearchItemDB<QuestItemData>(id))
             {
                 item = CreateQuestItem(pos, id, amount);
-                GFunc.Log("quest 아이템 생성");
             }
 
             // 크래프팅 임시 결과 아이템이 아닐 경우 네임태그 추가
@@ -333,7 +354,9 @@ public class ItemManager : MonoBehaviour
         }
 
         GameObject ItemTag = Resources.Load<GameObject>("Prefabs/Item_NameTag");
-        GameObject itemTag = Instantiate(ItemTag, item.transform.position, item.transform.rotation, item.transform);
+        GameObject itemTag = Instantiate(ItemTag, item.transform.position, item.transform.rotation);
+        itemTag.transform.localScale =  Vector3.one;
+        itemTag.transform.parent = item.transform;
         itemTag.GetComponent<ItemNameTag>().SetName(item.name);
         itemTag.GetComponent<ItemNameTag>().SetPosition(item.transform);
     }

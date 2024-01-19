@@ -48,6 +48,7 @@ public class SkillManager : MonoBehaviour
 
     [Header("DrillLanding")]
     public SkillEvent landingSkill;
+    public TMP_Text[] landingCountText;
 
     public int LDskillCount;            // 남은 스킬 횟수
     public bool isHookShot;             // 훅샷 사용여부
@@ -75,11 +76,12 @@ public class SkillManager : MonoBehaviour
         playerController = this.transform.GetChild(0).GetChild(0).GetComponent<PlayerController>();
         smoothLocomotion = playerController.GetComponent<SmoothLocomotion>();   
     }
+
     private void SetGrinderSlider()
     {
         grinderSlider.maxValue = GD_maxTime;
         grinderSlider.value = 0;
-        grinderVal.text = string.Format("" + GD_coolDown);
+        grinderVal.text = GD_coolDown.ToString();
 
     }
 
@@ -117,6 +119,7 @@ public class SkillManager : MonoBehaviour
         SetDrillSize(drillSize);
         
         Damage.instance.isTeradrill = true;
+        AudioManager.Instance.PlaySFX("SFX_Drill_Skill_TeraDrill_Active_02");
     }
     // 테라드릴 스킬 해제
     public void DeactiveTeraDrill()
@@ -128,14 +131,14 @@ public class SkillManager : MonoBehaviour
         SetDrillSize(drillSize);
        
         Damage.instance.isTeradrill = false;
+        AudioManager.Instance.PlaySFX("SFX_Drill_Skill_TeraDrill_End_02");
     }
 
     private void SetDrillSize(float size)
     {
         for (int i = 0; i < 2; i++)
         {
-            drills[i].drillHead.transform.localScale = new Vector3(size, size, size);
-            drills[i].MaxRange = 0.5f * size;
+            drills[i].SetDrillSize(size);
         }
     }
     #endregion
@@ -159,6 +162,7 @@ public class SkillManager : MonoBehaviour
 
         grinderDrillRoutine = IActiveGrinderDrill();
         StartCoroutine(grinderDrillRoutine);
+        AudioManager.Instance.PlaySFX("SFX_Drill_Skill_Grinding_Active_01");
     }
     // 드릴연마 실행
     IEnumerator IActiveGrinderDrill()
@@ -238,23 +242,28 @@ public class SkillManager : MonoBehaviour
     /// <returns></returns>
     IEnumerator CheckingGound()
     {
-        while(smoothLocomotion.state == PlayerState.air)
+
+        while (smoothLocomotion.state == PlayerState.air)
         {
             // if문 조건 필요
             // 드릴마다 각각 체크하도록 해야함
             for (int i = 0; i < 2; i ++)
             {
-                if (activeDrillDistance > drills[i].distanceFromGround && playerController.DistanceFromGround <2)
+                // 드릴의 거리가 발동 거리 이내이고, 플레이어 또한 발동거리 이내일 경우
+                if (activeDrillDistance > drills[i].distanceFromGround &&
+                    playerController.DistanceFromGround < 2)
                 {
-                    landingSkill.OnCollisionEvent();
-                    UserData.ActiveLandingSkill();
-                    yield break;
+                    // 만약 isKinematic이 켜져있다면, 드릴을 쥐고있는 상태가 아니다.
+                    if (drills[i].GetComponent<Rigidbody>().isKinematic)
+                    {
+                        landingSkill.OnCollisionEvent();
+                        UserData.ActiveLandingSkill();
+                        landingCountText[0].text = UserData.GetDrillLandingCount().ToString();
+                        landingCountText[1].text = UserData.GetDrillLandingCount().ToString();
+                        yield break;
+                    }
                 }
-
-                //if (!drills[i].grabbable.enabled)
-                //{                   
-                //    yield break;
-                //}
+         
             }
             yield return waitForEndOfFrame;
         }
@@ -264,14 +273,14 @@ public class SkillManager : MonoBehaviour
 
     //  #######################  스킬 이펙트  #######################
 
-    public void ActiveSkill(int id, float amount = 100)
+    public void ActiveSkill(int id, float amount = 100, float value = 0)
     {
         string effect = Data.GetString(id, "Effect");
 
         switch (effect) 
         {
             case "Attack":
-                ActiveAttack(id, amount);
+                ActiveAttack(id, amount, value);
                 return;                
 
             case "AttackRate":
@@ -283,7 +292,7 @@ public class SkillManager : MonoBehaviour
                 return;
 
             case "CritProbability":
-                ActiveCritProbability(id, amount);
+                ActiveCritProbability(id, amount, value);
                 return;
 
             case "DrillSize":
@@ -299,11 +308,17 @@ public class SkillManager : MonoBehaviour
 
 
     // 공격력 스킬
-    public void ActiveAttack(int id, float amount = 100)
-    {
+    public void ActiveAttack(int id, float amount = 100, float value = 0)
+    {        
         float attackDamage = Data.GetFloat(id, "Value1");
+        if(value != 0)
+        {
+            attackDamage = value;
+        }
         attackDamage *= (amount / 100);
-        Damage.instance.AddEffectDamage(attackDamage); 
+        Damage.instance.AddEffectDamage(attackDamage);
+
+        GFunc.Log($"드릴강화: 공격력 수치:[{attackDamage}]");
     }
     // 공격 속도 스킬
     public void ActiveAttackRate(int id, float amount = 100)
@@ -327,12 +342,18 @@ public class SkillManager : MonoBehaviour
         Damage.instance.AddEffectCritDamage(critDamage);
     }
     // 치명타 확률 스킬
-    public void ActiveCritProbability(int id, float amount = 100)
+    public void ActiveCritProbability(int id, float amount = 100, float value = 0)
     {
         float critProbability = Data.GetFloat(id, "Value1");
+        if (value != 0)
+        {
+            critProbability = value;
+        }
         critProbability *= (amount / 100);
 
         Damage.instance.AddEffectCritProbability(critProbability);
+
+        GFunc.Log($"드릴강화: 크리티컬 확률 수치:[{critProbability}]");
     }
     // 드릴 사이즈 스킬
     public void ActiveDrillSize(int id)
@@ -367,6 +388,13 @@ public class SkillManager : MonoBehaviour
         SetGrinderSlider();
 
         effectDrillSize = UserData.GetEffectDrillSize();
+
+        AudioManager.Instance.AddSFX("SFX_Drill_Skill_TeraDrill_Active_02");
+        AudioManager.Instance.AddSFX("SFX_Drill_Skill_TeraDrill_End_02");
+        AudioManager.Instance.AddSFX("SFX_Drill_Skill_Grinding_Active_01");
+
+        landingCountText[0].text = LDskillCount.ToString();
+        landingCountText[1].text = LDskillCount.ToString();
 
         //TD_collDown = Data.GetFloat(721100, "Value2");
         //TD_drillSize = Data.GetFloat(721100, "Value1");

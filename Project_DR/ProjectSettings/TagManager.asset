@@ -20,6 +20,11 @@ TagManager:
   - PlayerSkill
   - Hammer
   - Inventory
+  - Effects
+  - FxTemporaire
+  - DarkRoom
+  - PlayerInventory
+  - ResetButton
   layers:
   - Default
   - TransparentFX
@@ -37,7 +42,7 @@ TagManager:
   - MonsterWall
   - Player
   - Postprocessing
-  - 
+  - PhysicsPointer
   - 
   - 
   - MapObject

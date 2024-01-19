@@ -45,6 +45,10 @@ public class QuestPannel : MonoBehaviour
 
     private void Start()
     {
+        QuestCallback.SubspecialQuestProgressCallback += AddQuest;
+        QuestCallback.SubspecialQuestValueChangedCallback += UpdateQuest;
+        QuestCallback.SubspecialQuestCompletedCallback += RemoveQuest;
+
         transform.parent.localScale = offSize;
         // 퀘스트 아이템 및 부모 지정
         questItem = transform.GetChild(1).GetChild(0).GetChild(0).GetChild(2).gameObject;
@@ -73,8 +77,22 @@ public class QuestPannel : MonoBehaviour
         
         // 오브젝트에 퀘스트 정보 세팅
         QuestPannelItem item = newQuestObj.GetComponent<QuestPannelItem>();
-        item.SetCategory(quest.QuestData.ID.ToString());
-        item.SetQuestName(quest.QuestData.name);
+        int id = quest.QuestData.ID;
+        int typeNum = Data.GetInt(id, "Type");
+        string type = default;
+        if (typeNum == 2)
+        {
+            type = "서브";
+        }
+        else if (typeNum == 3)
+        {
+            type = "특수";
+        }
+        else
+            type = "ERROR";
+
+        item.SetCategory(type);
+        item.SetQuestName(Data.GetString(id, "Desc"));
         item.SetAchievement(quest.QuestData.CurrentValue.ToString());
 
         // 딕셔너리에 퀘스트 추가
@@ -83,6 +101,7 @@ public class QuestPannel : MonoBehaviour
     /// <summary> 퀘스트를 업데이트하는 메서드  </summary>
     public void UpdateQuest(Quest quest)
     {
+        GFunc.Log($"UpdateQuest(): {quest.QuestData.CurrentValue}");
         // 딕셔너리의 퀘스트 내용 업데이트
         QuestList[quest].GetComponent<QuestPannelItem>().SetAchievement(quest.QuestData.CurrentValue.ToString());
     }
@@ -97,7 +116,6 @@ public class QuestPannel : MonoBehaviour
         {
             transform.parent.localScale = offSize;
         }
-
     }
 
     /// <summary> 진행중인 퀘스트가 있을 경우 업데이트  </summary>

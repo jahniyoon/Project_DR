@@ -143,7 +143,7 @@ public class EventRoom : RandomRoom
     {
         Vector3 spawnPos;
         float xPos = (meshPos.bottomLeftCorner.x + meshPos.bottomRightCorner.x) * 0.5f;
-        float yPos = 0.5f;
+        float yPos = 1.5f;
         float zPos = (meshPos.bottomLeftCorner.z + meshPos.topLeftCorner.z) * 0.5f;
         spawnPos = new Vector3(xPos, yPos, zPos);
 
@@ -163,7 +163,7 @@ public class EventRoom : RandomRoom
     {
         int[] npcIds = (int[])Enum.GetValues(typeof(NPCID));
 
-        int randIdx = UnityEngine.Random.Range(0, npcIds.Length);
+        int randIdx = UnityEngine.Random.Range(0, npcIds.Length -1);
 
         GFunc.Log($"가져온 Prefab 이름 : {Data.GetString(npcIds[randIdx], "PrefabName")}");
         string prefabName = Data.GetString(npcIds[randIdx], "PrefabName");
@@ -172,7 +172,7 @@ public class EventRoom : RandomRoom
 
         Vector3 spawnPos;
         float xPos = (meshPos.bottomLeftCorner.x + meshPos.bottomRightCorner.x) * 0.5f;
-        float yPos = 0.5f;
+        float yPos = 1.5f;
         float zPos = (meshPos.bottomLeftCorner.z + meshPos.topLeftCorner.z) * 0.5f;
         spawnPos = new Vector3(xPos, yPos, zPos);
 
@@ -192,7 +192,7 @@ public class EventRoom : RandomRoom
 
         Vector3 spawnPos;
         float xPos = (meshPos.bottomLeftCorner.x + meshPos.bottomRightCorner.x) * 0.5f;
-        float yPos = 0.5f;
+        float yPos = 1.5f;
         float zPos = (meshPos.bottomLeftCorner.z + meshPos.topLeftCorner.z) * 0.5f;
         spawnPos = new Vector3(xPos, yPos, zPos);
         

@@ -19,6 +19,7 @@ namespace Js.Quest
         // 다음 상태로 변경 {[시작불가] -> [시작가능] -> [진행중] -> [완료가능] -> [완료]}
         public void ChangeToNextState(Quest quest, QuestState questState)
         {
+            GFunc.Log("ChangeToNextState");
             // [7] 증정 조건의 아이템 차감은
             // QuestHandler.GiveQuestReward()에서 처리한다.
 
@@ -30,10 +31,14 @@ namespace Js.Quest
 
             // 서브, 특수 퀘스트일 경우 콜백 호출
             if (quest.QuestData.Type.Equals(QuestData.QuestType.SUB)
-                && quest.QuestData.Type.Equals(QuestData.QuestType.SPECIAL))
+                || quest.QuestData.Type.Equals(QuestData.QuestType.SPECIAL))
             {
                 QuestCallback.OnSubspecialQuestCompletedCallback(quest);
             }
+
+            // 효과음 재생
+            AudioManager.Instance.AddSFX("SFX_Quest_UI_Complete_01");
+            AudioManager.Instance.PlaySFX("SFX_Quest_UI_Complete_01");
         }
     }
 }

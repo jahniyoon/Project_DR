@@ -4,6 +4,7 @@ using UnityEngine;
 using Js.Quest;
 using System.Text;
 using System;
+using Js.Boss;
 
 public class BossNPC : NPC
 {
@@ -39,10 +40,16 @@ public class BossNPC : NPC
 
     }       // AwakeInIt()
 
+    public void ChangeBossLevel(int level)
+    {
+        boss = (BossLevel)level;
+        AwakeInIt();
+    }
+
     protected override void Awake()
     {
         base.Awake();
-        npcID = GetComponent<Boss>().bossId;
+        npcID = GetComponent<Old_Boss>().bossId;
         ConvertionEventInIt();
     }       // Awake()
 
@@ -95,18 +102,28 @@ public class BossNPC : NPC
     protected override void StartConvertion()
     {
         // 플레이어 화면에 UI 캔버스 붙여주기
-        if (Camera.main)
+        //if (Camera.main)
+        //{
+        //    canvasObj.transform.parent = Camera.main.transform;
+        //    canvasObj.transform.localPosition = new Vector3(0,-0.38f,0.8f);
+        //    canvasObj.transform.localRotation = Quaternion.identity;
+        //}
+
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null) 
         {
-            canvasObj.transform.parent = Camera.main.transform;
-            canvasObj.transform.localPosition = new Vector3(0.2f,-0.35f,0.8f);
+            canvasObj.transform.parent = player.transform.parent.GetChild(3);
+            canvasObj.transform.localPosition = new Vector3(0f, 0.1f, 0.7f);
             canvasObj.transform.localRotation = Quaternion.identity;
+            canvasObj.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
         }
-        
-        // 화면 어둡게 페이드인
-        GameManager.instance.FadeIn();
+
+
+        // 보스 컷씬 시작
+        GameManager.instance.BossCutScene();
         
         // 캔버스 켜주기
-        OnCanvasObj();
+        Invoke(nameof(OnCanvasObj), 1f);
 
         int questID = GetCanCompleteMainQuestID();                              // 완료 가능한 퀘스트 불러오기 
         int[] conversationIDs = Unit.ClearQuestByID(questID);                   // 완료 상태로 변경 & 보상 지급 & 선행퀘스트 조건이 있는 퀘스트들 조건 확인 후 시작가능으로 업데이트
@@ -133,16 +150,39 @@ public class BossNPC : NPC
     {
         base.EndConveration();
 
-        OffCanvasObj();                      // 캔버스 끄기
-        GameManager.instance.FadeOut();      // 플레이어 페이드 아웃
+        OffCanvasObj();                              // 캔버스 끄기
+        GameManager.instance.EndBossCutScene();      // 플레이어 페이드 아웃
 
+        Old_Boss oldBoss = GetComponent<Old_Boss>();
+        // 신 보스일 경우
+        if (oldBoss.IsUseFunctionalityOnly)
+        {
+            GameManager.instance.isBossBattle = true;
+
+            // 1초 후 공격 시작
+            BossSummoningStone bossStone = GetComponent<BossSummoningStone>();
+            bossStone.Boss.BossMonster.InvokeStartAttack(1f);
+            transform.GetComponentInChildren<DialogDebug>().enabled = false;
+        }
+
+        // 아닐 경우(기존 보스일 경우) 
+        else
+        {
+            // 1초 후 공격 시작
+            Invoke(nameof(StartBossBattle), 1f);
+        }          
+    }       // EndConveration()
+
+    // 전투 시작
+    private void StartBossBattle()
+    {
         GFunc.ChoiceEvent(conversationID);   // 대화 종료 후 대사 클리어 이벤트 진행중으로 변경
 
-        GetComponent<Boss>().StartAttack();  // 보스 전투 시작
-        GameManager.instance.isBossFight = true;
+        GetComponent<Old_Boss>().StartAttack();  // 보스 전투 시작
+        GameManager.instance.isBossBattle = true;
 
         transform.GetChild(0).gameObject.SetActive(false);
-    }       // EndConveration()
+    }
 
     /// <summary> 대사 선정 </summary>
     public void PickConversation(int conversationId)

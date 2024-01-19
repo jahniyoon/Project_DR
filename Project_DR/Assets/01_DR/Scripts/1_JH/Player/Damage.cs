@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class Damage : MonoBehaviour
 {
@@ -52,26 +54,37 @@ public class Damage : MonoBehaviour
         UserData.GetData(GetData);
     }
 
-    // 데미지 계산기
-    public float DamageCalculate(float _damage, bool isLanding = false)
+    /// <summary>
+    /// 데미지 계산기 튜플로 2가지 값 반환.
+    /// </summary>
+    /// <param name="_damage"></param>
+    /// <param name="isLanding"></param>
+    /// <returns>float : 데미지, bool 크리티컬 여부</returns>
+    //
+    public (float, bool) DamageCalculate(float _damage, bool isLanding = false)
     {
         float _teraIncrease = isTeradrill ? teraIncrease : 0;
         float _grinderCritChance = isGrinder ? grinderCritChance : 0;
         float _grinderIncrease = isGrinder ? grinderIncrease : 0;
         float _landingIncrease = isLanding ? landingIncrease : 0;
+        bool isCrit = default;
 
-        float val = isLanding ? -1 : Random.Range(0f, 100f);
+        float val = isLanding ? -1 : Random.Range(0f, 100f);    // 랜딩스킬일 경우 값 -1, 아닐 경우 0 ~ 100확률
 
         //GFunc.Log("치명타 확률" + critChance +"+"+ grinderCritChance + "이번 확률 :" + val);
-        float _critIncrease = critProbability + _grinderCritChance <= val ? 0 : critIncrease;
+        float _critIncrease = critProbability + _grinderCritChance <= val ? 0 : critIncrease;   // 랜딩스킬일 경우 -1이기 때문에 무조건 치명타
 
-        //GFunc.Log(_damage + " * = (1 + " + _teraIncrease + " ) * ( 1 + (" + _critIncrease + " + " + _grinderIncrease + " + " + _landingIncrease + ")");
         //공격 계산식 = {기본 공격력*(1+테라드릴 증가)}*{1+(치명타 배율+드릴 연마 배율+랜딩 스킬 배율)}
 
         _damage *= (1 + _teraIncrease + effectDmgIncrease) * (1 + (_critIncrease + _grinderIncrease + _landingIncrease + effectCritIncrease));
 
+        // 크리티컬이면 트루
+        if(_critIncrease != 0)
+        {
+            isCrit = true;
+        }
 
-        return _damage;
+        return (_damage, isCrit);
     }
 
     void GetData()

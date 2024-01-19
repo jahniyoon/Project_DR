@@ -32,7 +32,7 @@ namespace BNG {
         public InputActionReference UIInputAction;
 
         [Tooltip("If true a PhysicsRaycaster component will be added to the UI camera, allowing physical objects to use IPointer events such as OnPointClick, OnPointEnter, etc.")]
-        public bool AddPhysicsRaycaster = false;
+        public bool AddPhysicsRaycaster = true;
 
         public LayerMask PhysicsRaycasterEventMask;
 
@@ -94,6 +94,7 @@ namespace BNG {
 
         protected override void Start() {
             base.Start();
+            AudioManager.Instance.AddSFX("SFX_UI_ButtonClick_01");
 
 #if XRIT_INTEGRATION
             if (UseXRInteractionToolkitUISystem) {
@@ -105,7 +106,7 @@ namespace BNG {
                 }
             }
 #else
-        AssignCameraToAllCanvases(cameraCaster);
+            AssignCameraToAllCanvases(cameraCaster);
 #endif
         }
 
@@ -125,6 +126,7 @@ namespace BNG {
                 // Add PhysicsRaycaster so other objects can subscribe to IPointer events
                 if(AddPhysicsRaycaster) {
                     var pr = go.AddComponent<PhysicsRaycaster>();
+                    PhysicsRaycasterEventMask |= (1 << 16);
                     pr.eventMask = PhysicsRaycasterEventMask;
                 }
             }
@@ -241,6 +243,12 @@ namespace BNG {
             // Set Drag Objects and Events
             SetDraggingObject(ExecuteEvents.GetEventHandler<IDragHandler>(EventData.pointerPressRaycast.gameObject));
             ExecuteEvents.Execute(EventData.pointerDrag, EventData, ExecuteEvents.beginDragHandler);
+            
+            // 무언가 있으면 효과음 재생
+            if (PressingObject != null)
+            {
+                AudioManager.Instance.PlaySFX("SFX_UI_ButtonClick_01");
+            }
         }
 
         public virtual void Press() {

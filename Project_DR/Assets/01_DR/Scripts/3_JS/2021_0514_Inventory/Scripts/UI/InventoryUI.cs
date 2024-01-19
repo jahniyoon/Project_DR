@@ -95,6 +95,7 @@ namespace Rito.InventorySystem
         #region .
 
         /// <summary> 연결된 인벤토리 </summary>
+        public Inventory Inventory => _inventory;
         private Inventory _inventory;
 
         private List<ItemSlotUI> _slotUIList = new List<ItemSlotUI>();
@@ -130,7 +131,7 @@ namespace Rito.InventorySystem
             Init();
             InitSlots();
             InitButtonEvents();
-            InitToggleEvents();
+            //InitToggleEvents();
             ChangeScrollRange();
         }
 
@@ -200,6 +201,8 @@ namespace Rito.InventorySystem
 
             _slotUIList = new List<ItemSlotUI>(_verticalSlotCount * _horizontalSlotCount);
 
+            Quaternion rotation = Quaternion.Euler(0f, 0f, 0f);
+
             int index = default;
             // 슬롯들 동적 생성
             for (int j = 0; j < _verticalSlotCount; j++)
@@ -222,6 +225,9 @@ namespace Rito.InventorySystem
                     var slotUI = slotRT.GetComponent<ItemSlotUI>();
                     slotUI.SetSlotIndex(slotIndex);
                     _slotUIList.Add(slotUI);
+
+                    // 슬롯 로테이션 변경
+                    slotUI.transform.localRotation = rotation;
 
                     // Next X
                     curPos.x += (_slotMargin + _slotSize);
@@ -261,19 +267,19 @@ namespace Rito.InventorySystem
 
         private void InitToggleEvents()
         {
-            _toggleFilterAll.onValueChanged.AddListener(       flag => UpdateFilter(flag, FilterOption.All));
-            _toggleFilterEquipments.onValueChanged.AddListener(flag => UpdateFilter(flag, FilterOption.Equipment));
-            _toggleFilterPortions.onValueChanged.AddListener(  flag => UpdateFilter(flag, FilterOption.Portion));
+            //_toggleFilterAll.onValueChanged.AddListener(       flag => UpdateFilter(flag, FilterOption.All));
+            //_toggleFilterEquipments.onValueChanged.AddListener(flag => UpdateFilter(flag, FilterOption.Equipment));
+            //_toggleFilterPortions.onValueChanged.AddListener(  flag => UpdateFilter(flag, FilterOption.Portion));
 
             // Local Method
-            void UpdateFilter(bool flag, FilterOption option)
-            {
-                if (flag)
-                {
-                    _currentFilterOption = option;
-                    UpdateAllSlotFilters();
-                }
-            }
+            //void UpdateFilter(bool flag, FilterOption option)
+            //{
+            //    if (flag)
+            //    {
+            //        _currentFilterOption = option;
+            //        UpdateAllSlotFilters();
+            //    }
+            //}
         }
 
         #endregion
@@ -554,6 +560,19 @@ namespace Rito.InventorySystem
 
         #endregion
         /***********************************************************************
+         *                               Private Methods
+         ***********************************************************************/
+        // 모든 아이템 슬롯 로테이션 초기화
+        public void ResetRotationAllItemSlot()
+        {
+            Quaternion rotation = Quaternion.identity;
+            for (int i = 0; i < _slotUIList.Count; i++)
+            {
+                _slotUIList[i].transform.rotation = rotation;
+            }
+        }
+
+        /***********************************************************************
         *                               Private Methods
         ***********************************************************************/
         #region .
@@ -703,20 +722,28 @@ namespace Rito.InventorySystem
         public void UpdateSlotFilterState(int index, ItemData itemData)
         {
             bool isFiltered = true;
-
+            //GFunc.Log("UpdateSlotFilterState()");
             // null인 슬롯은 타입 검사 없이 필터 활성화
             if(itemData != null)
-                switch (_currentFilterOption)
+            {
+                // 포션 & 폭탄 & 퀘스트 아이템만 필터 활성화해서 숨김
+                if ((itemData is PortionItemData) || (itemData is BombItemData)
+                    || (itemData is QuestItemData))
                 {
-                    case FilterOption.Equipment:
-                        isFiltered = (itemData is EquipmentItemData);
-                        break;
-
-                    case FilterOption.Portion:
-                        isFiltered = (itemData is PortionItemData);
-                        break;
+                    isFiltered = false;
                 }
+            }
+                //switch (_currentFilterOption)
+                //{
+                //    case FilterOption.Equipment:
+                //        isFiltered = (itemData is EquipmentItemData);
+                //        break;
 
+                //    case FilterOption.Portion:
+                //        isFiltered = (itemData is PortionItemData);
+                //        break;
+                //}
+            // itemData가 null일 경우 true로 필터 활성화(아이템 표시)
             _slotUIList[index].SetItemAccessibleState(isFiltered);
         }
 

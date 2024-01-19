@@ -323,6 +323,10 @@ namespace Js.Crafting
 
                 // 망치질 횟수가 필요한 횟수를 넘었을 경우 조합 시도
                 TryCraftAfterHammeringRequirement();
+
+                // 효과음 재생
+                AudioManager.Instance.AddSFX("SFX_Craft_Hammer_01");
+                AudioManager.Instance.PlaySFX("SFX_Craft_Hammer_01");
             }
         }
 
@@ -392,7 +396,8 @@ namespace Js.Crafting
             string itemName = Data.GetString(id, "Name");
             Vector3 pos = Vector3.zero;
             GameObject tempItem = Unit.AddFieldTempItem(pos, id, parent);
-            tempItem.GetComponent<Rigidbody>().isKinematic = true;
+            Rigidbody tempItemRigidBody = tempItem.GetComponent<Rigidbody>();
+            if (tempItemRigidBody != null) { tempItemRigidBody.isKinematic = true; }
             tempItem.name = GFunc.SumString("[임시] ", itemName);
             tempItem.SetActive(false);
 

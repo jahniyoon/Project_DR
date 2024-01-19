@@ -100,10 +100,10 @@ namespace Rito.InventorySystem
         /// <summary> 아이템 데이터 타입별 정렬 가중치 </summary>
         private readonly static Dictionary<Type, int> _sortWeightDict = new Dictionary<Type, int>
         {
-            { typeof(PortionItemData), 10000 },
-            { typeof(BombItemData),  20000 },
-            { typeof(MaterialItemData),   30000 },
-            { typeof(QuestItemData),   40000 },
+            { typeof(QuestItemData),   10000 },
+            { typeof(MaterialItemData),   20000 },
+            { typeof(PortionItemData), 30000 },
+            { typeof(BombItemData),  40000 },
         };
         private class ItemComparer : IComparer<Item>
         {
@@ -168,8 +168,16 @@ namespace Rito.InventorySystem
                 if (current == null)
                     continue;
 
-                // 아이템 종류 일치, 개수 여유 확인
-                if (current.Data == target && current is CountableItem ci)
+                // LEGACY:
+                //if (current.Data == target && current is CountableItem ci)
+                //{
+                //    if (!ci.IsMax)
+                //        return i;
+                //}
+
+                // LEGACY의 데이터 매칭 오류 발생으로
+                // ID매칭으로 변경
+                if (current.Data.ID == target.ID && current is CountableItem ci)
                 {
                     if (!ci.IsMax)
                         return i;
@@ -241,7 +249,7 @@ namespace Rito.InventorySystem
         }
 
         /// <summary> 모든 슬롯들의 상태를 UI에 갱신 </summary>
-        private void UpdateAllSlot()
+        public void UpdateAllSlot()
         {
             for (int i = 0; i < Capacity; i++)
             {
@@ -334,15 +342,18 @@ namespace Rito.InventorySystem
                     if (findNextCountable)
                     {
                         index = FindCountableItemSlotIndex(ciData, index + 1);
+                        GFunc.Log($"인덱스: {index}");
                       
                         // 개수 여유있는 기존재 슬롯이 더이상 없다고 판단될 경우, 빈 슬롯부터 탐색 시작
                         if (index == -1)
                         {
+                            GFunc.Log("인벤토리에 없음");
                             findNextCountable = false;
                         }
                         // 기존재 슬롯을 찾은 경우, 양 증가시키고 초과량 존재 시 amount에 초기화
                         else
                         {
+                            GFunc.Log("인벤토리에 있음");
                             CountableItem ci = _items[index] as CountableItem;
                             amount = ci.AddAmountAndGetExcess(amount);
                             UpdateSlot(index);
@@ -412,6 +423,7 @@ namespace Rito.InventorySystem
                 }
             }
 
+            GFunc.Log(amount);
             return amount;
         }
 
@@ -431,11 +443,19 @@ namespace Rito.InventorySystem
         /// <summary> ID로 인벤토리에 있는 아이템을 제거 </summary>
         public bool RemoveInventoryItemForID(int id, int amount)
         {
+            GFunc.Log($"삭제할 ID: {id}");
+            // ID가 0일 경우 예외처리
+            if (id.Equals(0))
+            { 
+                GFunc.Log("Inventory.RemoveInventoryItemForID():" +
+                "삭제할 ID가 0이라서 삭제할 수 없습니다.");
+                return false;
+            }
             List<int> itemIndexList = new List<int>();
             List<int> itemAmountList = new List<int>();
             int removeAmount = amount;
             int itemTotalAmount = default;
-            for (int i = 0; i < Items.Length; i++)
+            for (int i = (_items.Length - 1); i > -1; i--)
             {
                 // 아이템 보유량 체크 및 인덱스 보관
                 // 인벤토리에 있는 아이템 ID와 받아온 ID가 일치할 경우
@@ -461,6 +481,7 @@ namespace Rito.InventorySystem
                     // 인덱스 & 카운트 보관
                     itemIndexList.Add(i);
                     itemAmountList.Add(itemCount);
+                    GFunc.Log($"아이템 Amount: {itemCount}");
                 }
             }
 
@@ -468,15 +489,18 @@ namespace Rito.InventorySystem
             if (itemTotalAmount >= amount)
             {
                 // 삭제할 아이템 갯수
-                for (int i = (itemIndexList.Count - 1); i > -1; i--)
+                for (int i = 0; i < itemIndexList.Count; i++)
                 {
                     GFunc.Log(i);
                     // 해당 슬롯의 아이템 보유량 만큼 차감 & 아이템 삭제
+                    GFunc.Log($"ItemIndexList[{i}]: {itemIndexList[i]}");
                     int itemAmount = itemAmountList[i];
                     if ((removeAmount - itemAmount) > 0)
                     {
                         // 해당 슬롯 아이템 삭제
                         removeAmount -= itemAmount;
+                        GFunc.Log($"보유갯수: {itemAmount}");
+                        GFunc.Log($"아이디:{id} 삭제 갯수[{itemAmount} - {removeAmount}]");
                         Remove(itemIndexList[i]);
                     }
 
@@ -485,7 +509,9 @@ namespace Rito.InventorySystem
                     {
                         // 해당 슬롯 아이템 보유량 차감
                         itemAmount -= removeAmount;
-                        CountableItem ci = Items[i] as CountableItem;
+                        CountableItem ci = Items[itemIndexList[i]] as CountableItem;
+                        GFunc.Log($"아이디[{itemIndexList[i]}]:{id} 삭제 갯수[{itemAmount - removeAmount}]");
+
                         ci.SetAmount(itemAmount);
 
                         // 처리 종료

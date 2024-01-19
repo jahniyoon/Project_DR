@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
 using UnityEngine.Windows;
 
 public class SkillEvent : MonoBehaviour
@@ -22,6 +23,10 @@ public class SkillEvent : MonoBehaviour
     public float landingForce;              // 넉백 힘
     public float knockbackRange;     // 넉백 사거리
 
+    [Header("Particle")]
+    public ParticleSystem[] particles;
+    public LayerMask GroundedLayers;
+
     [Header("Debug")]
     public float TDcheckerHeight;
     public float TDcheckerTiming;
@@ -35,12 +40,17 @@ public class SkillEvent : MonoBehaviour
 
     WaitForSeconds TDWaitForSeconds;
     WaitForSeconds GDWaitForSeconds;
-    WaitForSeconds WaitForSeconds = new WaitForSeconds(0.1f);
+    WaitForSeconds WaitForSeconds = new WaitForSeconds(0.25f);
+
+    public bool bomb;
+    public float bombForce;
+    public float damageVal;
 
     // Start is called before the first frame update
     void Start()
     {
-        UserData.GetData(GetData);        
+        UserData.GetData(GetData);
+        DisableParticle();
     }
 
 
@@ -103,6 +113,7 @@ public class SkillEvent : MonoBehaviour
         }
         if (skill == Skill.Grinding)
         {
+            particles[0].gameObject.SetActive(false);
             if (!other.gameObject.CompareTag("Weapon"))
             { return; }
             InitRoutine(skillRoutine);
@@ -129,6 +140,8 @@ public class SkillEvent : MonoBehaviour
     {
         trigger = true;
         shootDisableEvent.Invoke();
+        particles[0].gameObject.SetActive(false);
+        particles[0].gameObject.SetActive(true);
         while (true)
         {
             yield return GDWaitForSeconds;
@@ -151,17 +164,18 @@ public class SkillEvent : MonoBehaviour
     // 넉백 범위의 콜라이더 껐다 켜주기
     IEnumerator DrillLanding()
     {
-        GFunc.Log("On");
         sphereCollider.enabled = true;
+        ActiveParticle();
         yield return WaitForSeconds;
 
-        GFunc.Log("Off");
         sphereCollider.enabled = false;
 
     }
     // 범위에 닿은 몬스터들의 넉백 실행부분
     public void ActiveDrillLanding(GameObject target)
     {
+        target.GetComponent<Monster>().isUpper = true;
+
         Rigidbody targetRB = target.GetComponent<Rigidbody>();
         Vector3 skillPos = transform.localPosition;
         Vector3 targetPos = targetRB.transform.localPosition;
@@ -169,12 +183,24 @@ public class SkillEvent : MonoBehaviour
         //targetPos.y += 0.5f;
 
         Vector3 force = targetPos - skillPos * landingForce;
-        targetRB.AddForce(force, ForceMode.Impulse);
+        if(bomb)
+        {
+            GFunc.Log("폭탄 터진다.");
+            force = targetRB.transform.position - transform.position * bombForce;
+            targetRB.AddForce(force, ForceMode.Impulse);
+        }
+        else
+        targetRB.AddForce(force * 2, ForceMode.Impulse);
 
         Damageable damage = target.GetComponent<Damageable>();
-        if(damage)
+        if(bomb && damage)
         {
-            damage.DealDamage(Damage.instance.DamageCalculate(UserData.GetDrillDamage()));
+            damage.DealDamage(damageAmount: damageVal);
+        }
+        else if(damage)
+        {
+            (float, bool) _damage = Damage.instance.DamageCalculate(UserData.GetDrillDamage(), true);
+            damage.DealDamage(damageAmount : _damage.Item1, _critical: _damage.Item2);
         }
     }
     void GetData()
@@ -189,6 +215,8 @@ public class SkillEvent : MonoBehaviour
         landingForce = UserData.GetLandingForce();
         if (skill == Skill.Landing)
         {
+            AudioManager.Instance.AddSFX("SFX_Drill_Skill_Landing_Active_01");
+
             sphereCollider = GetComponent<SphereCollider>();
 
             knockbackRange = Data.GetFloat(720217, "Value1") / 2;
@@ -200,6 +228,44 @@ public class SkillEvent : MonoBehaviour
         {
             boxCollider = GetComponent<BoxCollider>();
             boxCollider.center = new Vector3(0, TDcheckerHeight, 0);
+        }
+    }
+
+    // 파티클을 실행시켜주는 메서드
+    private void ActiveParticle()
+    {
+        if(particles.Length == 0)
+        {
+            return;
+        }
+        RaycastHit hit;
+        Vector3 position = transform.position;
+        if(Physics.Raycast(transform.position, -transform.up, out hit, 5, GroundedLayers))
+        {
+            position = hit.point;
+            position.y += 0.5f;
+        }
+
+        for(int i = 0; i < particles.Length; i++)
+        {
+            GFunc.Log($"{particles[i].name} 실행 + {position}");
+            particles[i].transform.position = position;
+            particles[i].gameObject.SetActive(false);
+            particles[i].gameObject.SetActive(true);
+            particles[i].Play();
+        }
+        AudioManager.Instance.PlaySFX("SFX_Drill_Skill_Landing_Active_01");
+
+    }
+    private void DisableParticle()
+    {
+        if (particles == null)
+        {
+            return;
+        }
+        for (int i = 0; i < particles.Length; i++)
+        {
+            particles[i].gameObject.SetActive(false);
         }
     }
 }

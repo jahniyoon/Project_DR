@@ -1,6 +1,7 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.ConstrainedExecution;
 using UnityEngine;
 using UnityEngine.Events;
 #if INVECTOR_BASIC || INVECTOR_AI_TEMPLATE
@@ -14,7 +15,7 @@ namespace BNG {
     public class Damageable : MonoBehaviour {
 
         // 보스 할당
-        private BossMonster.Boss _boss;
+        private Js.Boss.Boss _boss;
         
         public float Health = 100;
         private float _startingHealth;
@@ -98,29 +99,41 @@ namespace BNG {
         }
 
         // Init
-        public void Initialize(BossMonster.Boss boss)
+        public void Initialize()
         {
-            _boss = boss;
-            _startingHealth = boss.BossData.MaxHP;
+            //LEGACY:
+            //_boss = boss;
+            //_startingHealth = boss.BossData.MaxHP;
+            // 데미지를 두번 연산해서 Boss와 Damageable간의
+            // 오차가 생겨 _startingHealth를 변경함
+            // 왜냐면 Damageable의 체력이 0이 되면 데미지가 안들어가기 떄문
+            _startingHealth = 99999999f;
             Health = _startingHealth;
         }
 
-        public virtual void DealDamage(float damageAmount) {
-            DealDamage(damageAmount, transform.position);
+        public virtual void DealDamage(float damageAmount, bool _critical = default) {
+            DealDamage(damageAmount, transform.position, critical : _critical);
 
         }
 
         //public virtual void DealDamage(float damageAmount, Vector3? hitPosition = null, Vector3? hitNormal = null, bool reactToHit = true, GameObject sender = null, GameObject receiver = null) {
-        public virtual void DealDamage(float damageAmount, Vector3 hitPosition, Vector3? hitNormal = null, bool reactToHit = true, GameObject sender = null, GameObject receiver = null)
+        public virtual void DealDamage(float damageAmount, Vector3 hitPosition, Vector3? hitNormal = null, bool reactToHit = true, GameObject sender = null, GameObject receiver = null, bool critical = default, bool left = default)
         {
             if (destroyed || stun) {
                 return;
             }
+
+            if(damageAmount < 0)
+            {
+                critical = true;
+                damageAmount = Mathf.Abs(damageAmount);
+            }
+
+            damageAmount = Mathf.RoundToInt(damageAmount);  // 반올림
             Health -= damageAmount;
 
             onDamaged?.Invoke(damageAmount);
-
-            //GFunc.Log($"health{Health}");
+            CreateDamageUI(damageAmount, hitPosition, _left : left, _crit : critical);
 
             // Invector Integration
 #if INVECTOR_BASIC || INVECTOR_AI_TEMPLATE
@@ -236,6 +249,18 @@ namespace BNG {
             if (onRespawn != null) {
                 onRespawn.Invoke();
             }
+        }
+
+        // 아이템에 네임택을 넣어주는 메서드
+        public void CreateDamageUI(float _damage, Vector3 _position = default, bool _left = false,  bool _crit = false)
+        {
+            // 플레이어의 경우 예외
+            if(gameObject.CompareTag("Player"))
+            { return; }
+
+            GameObject damageObj = Resources.Load<GameObject>("Prefabs/DamageUI");
+            GameObject damageUI = Instantiate(damageObj, _position, Quaternion.identity);
+            damageUI.GetComponent<DamageUI>().OnDeal(_damage, position: _position, left : _left, critical: _crit); ;         
         }
     }
 }

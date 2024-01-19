@@ -23,6 +23,7 @@ public class Grappling : GrabbableEvents
     public Rigidbody playerRigid;
     private SmoothLocomotion smoothLocomotion;
     private PlayerTeleport teleport;
+    private RaycastWeaponDrill weaponDrill;
 
     private PlayerGravity playerGravity;
     private PlayerClimbing playerClimbing;
@@ -61,6 +62,8 @@ public class Grappling : GrabbableEvents
     private Vector3 smallScale;
 
     IEnumerator checkExcute;
+    IEnumerator soundRoutine;
+    WaitForSeconds waitGrappleDelay;
 
     public void OnEnable()
     {
@@ -85,17 +88,17 @@ public class Grappling : GrabbableEvents
         {
             GFunc.Log("플레이어 오브젝트를 찾지 못함");
         }
+        weaponDrill = GetComponent<RaycastWeaponDrill>();
         GetData();
         line = GetComponent<LineRenderer>();
+
+        waitGrappleDelay = new WaitForSeconds(grappleDelayTime);
+
+        AudioManager.Instance.AddSFX("SFX_Drill_HookShoot_Fire");
+        AudioManager.Instance.AddSFX("SFX_Drill_HookShoot_Stick_01");
+        AudioManager.Instance.AddSFX("SFX_Drill_HookShoot_Stick_02");
     }
 
-    private void Update()
-    {
-#if JH_DEBUG
-        DebugMode();
-#endif
-   
-    }
     private void FixedUpdate()
     {
         if (state != State.Grappling)
@@ -104,17 +107,7 @@ public class Grappling : GrabbableEvents
         GrapplingMove(); // 그래플링일 경우에만 실행
 
     }
-#if JH_DEBUG
 
-    public void DebugMode()
-    {
-        debug.gameObject.SetActive(true);
-        debug2.gameObject.SetActive(true);
-        debug.text = string.Format(""+state);
-        debug2.text = string.Format(currentGrappleDistance+ "m");
-
-    }
-#endif
 
     private void LateUpdate()
     {
@@ -205,12 +198,18 @@ public class Grappling : GrabbableEvents
             {
                 isDamageCheck = true;                             // 데미지 체크 켜고
                 target = hit.collider.GetComponent<Damageable>(); // 타겟 세팅
+                StartCoroutine(PlaySFXRoutine("SFX_Drill_HookShoot_Stick_01"));
             }
             else if (hit.collider.GetComponent<DamageablePart>())
             {
                 isDamageCheck = true;
                 target = hit.collider.GetComponent<DamageablePart>().parent;
+                StartCoroutine(PlaySFXRoutine("SFX_Drill_HookShoot_Stick_01"));
             }
+            else
+                StartCoroutine(PlaySFXRoutine("SFX_Drill_HookShoot_Stick_02"));
+
+
         }
 
         else
@@ -237,12 +236,16 @@ public class Grappling : GrabbableEvents
     // 드릴 발사
     private void ShootDrill()
     {
+        AudioManager.Instance.PlaySFX("SFX_Drill_HookShoot_Fire");
+
         _drill = Instantiate(drillPrefab, drill.transform.position, drill.transform.rotation); // 드릴 인스턴스
         //_drill.transform.localScale = drill.transform.localScale;
-        _drill.transform.localScale = Vector3.one;
+        _drill.transform.localScale = weaponDrill.GetDrillSize();                              // 현재 드릴 크기로 맞추기
         _drill.transform.LookAt(grapplePoint);                                                 // 타겟 바라보고
         _drill.GetComponent<DrillHead>().targetPos = grapplePoint;                             // 그래플링 포인트 세팅
         _drill.GetComponent<DrillHead>().grappling = this;                                     // 드릴이 만난 오브젝트의 체력이 0이하일 경우를 체크하기 위함
+
+        _drill.GetComponent<DrillHead>().DrillSide(weaponDrill.isLeft);
 
         Destroy(_drill,grappleDelayTime);
     }
@@ -304,24 +307,17 @@ public class Grappling : GrabbableEvents
         {
             smoothLocomotion.grappleCount--;
         }
-
         
         state = State.Idle;
 
         lastGrapplingTime = Time.time;
 
         //drill.SetActive(true);
-        drill.transform.localScale = Vector3.one;
+        drill.transform.localScale = weaponDrill.GetDrillSize(); // 현재 드릴 크기로 되돌리기
         line.enabled = false;
         
         isDamageCheck = false;
-        target = null;
-
-        //if (_drill != null)
-        //{
-        //    Destroy(_drill.gameObject);
-        //}
-
+        target = null;      
     }
     public void GrapleDisable()
     {
@@ -383,5 +379,17 @@ public class Grappling : GrabbableEvents
         //    GFunc.Log("리지드바디 생성");
         //    playerRigid = player.GetComponent<Rigidbody>();
         //}
+    }
+
+    IEnumerator PlaySFXRoutine(string name)
+    {
+        yield return waitGrappleDelay;
+        PlaySFX(name);
+        yield break;
+    }
+
+    private void PlaySFX(string _name)
+    {
+        AudioManager.Instance.PlaySFXPoint(_name, grapplePoint);
     }
 }

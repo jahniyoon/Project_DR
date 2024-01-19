@@ -8,12 +8,6 @@ using static UnityEngine.GraphicsBuffer;
 
 public class EliteMonster : Monster
 {
-    private bool isMoving = false;
-    private float moveDuration = 1.0f;
-    private float moveTimer = 0.0f;
-    private Vector3 startPosition;
-    private Vector3 targetPosition;
-
     public MonsterBullet monsterBullet;
 
     [Header("몬스터 원거리 관련")]
@@ -22,36 +16,8 @@ public class EliteMonster : Monster
     public Transform bulletPort;
     public GameObject monsterBulletPrefab;
 
-    [Header("넉백 카운터")]
-    public float count = 0;
-    public float maxCount = 3;
-
-    void Update()
-    {
-        if (isMoving)
-        {
-            moveTimer += Time.deltaTime;
-
-            float t = Mathf.Clamp01(moveTimer / moveDuration);
-            transform.position = Vector3.Lerp(startPosition, targetPosition, t);
-
-            if (t >= 1.0f)
-            {
-                isMoving = false;
-                moveTimer = 0.0f;
-            }
-        }
-    }
-
-    public void MoveWithSmoothTransition(Vector3 target)
-    {
-        if (!isMoving)
-        {
-            isMoving = true;
-            startPosition = transform.position;
-            targetPosition = target;
-        }
-    }
+    [Header("정예 이펙트")]
+    public GameObject FireEffect;
 
     public override IEnumerator MonsterAction()
     {
@@ -105,7 +71,7 @@ public class EliteMonster : Monster
                                     anim.SetBool(hashAttack, false);
                                     anim.SetBool(hashWalkingAttack, false);
                                     anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
 
                                 case 1:
@@ -117,7 +83,7 @@ public class EliteMonster : Monster
                                     anim.SetBool(hashAttack2, false);
                                     //anim.SetBool(hashWalkingAttack, false);
                                     anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
 
                             }
@@ -137,7 +103,7 @@ public class EliteMonster : Monster
                                     anim.SetBool(hashAttack, false);
                                     anim.SetBool(hashWalkingAttack, false);
                                     anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
 
                                 case 1:
@@ -149,7 +115,7 @@ public class EliteMonster : Monster
                                     anim.SetBool(hashAttack2, false);
                                     //anim.SetBool(hashWalkingAttack, false);
                                     anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
 
                                 case 2:
@@ -160,7 +126,7 @@ public class EliteMonster : Monster
                                     anim.SetBool(hashAttack3, false);
                                     //anim.SetBool(hashWalkingAttack, false);
                                     anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
 
                             }
@@ -180,7 +146,7 @@ public class EliteMonster : Monster
                                     anim.SetBool(hashAttack, false);
                                     //anim.SetBool(hashWalkingAttack, false);
                                     anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
 
                                 case 1:
@@ -190,7 +156,7 @@ public class EliteMonster : Monster
                                     anim.SetBool(hashAttack2, false);
                                     //anim.SetBool(hashWalkingAttack, false);
                                     anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
 
                                 case 2:
@@ -200,7 +166,7 @@ public class EliteMonster : Monster
                                     anim.SetBool(hashAttack3, false);
                                     //anim.SetBool(hashWalkingAttack, false);
                                     anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
 
                             }
@@ -208,16 +174,16 @@ public class EliteMonster : Monster
 
                         case Type.BEAST_QUEENWORM:
 
-                                case 0:
-                                    anim.SetBool(hashWalkingAttack, true);
-                                    anim.SetBool(hashAttack, true);
-                                    yield return new WaitForSeconds(0.8f);
-                                    anim.SetBool(hashidle, true);
-                                    anim.SetBool(hashAttack, false);
-                                    //anim.SetBool(hashWalkingAttack, false);
-                                    anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
-                                    break;
+                        case 0:
+                            anim.SetBool(hashWalkingAttack, true);
+                            anim.SetBool(hashAttack, true);
+                            yield return new WaitForSeconds(0.8f);
+                            anim.SetBool(hashidle, true);
+                            anim.SetBool(hashAttack, false);
+                            //anim.SetBool(hashWalkingAttack, false);
+                            anim.SetBool(hashRun, false);
+                            yield return new WaitForSeconds(attDelay);
+                            break;
 
                         case Type.SIMPLE_TOADSTOOL:
 
@@ -228,24 +194,24 @@ public class EliteMonster : Monster
                                 case 0:
                                     anim.SetBool(hashWalkingAttack, true);
                                     anim.SetBool(hashAttack, true);
-                                
+
                                     yield return new WaitForSeconds(0.2f);
                                     anim.SetBool(hashidle, true);
                                     anim.SetBool(hashAttack, false);
                                     anim.SetBool(hashWalkingAttack, false);
                                     anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
 
                                 case 1:
                                     anim.SetBool(hashAttack2, true);
-                                    
+
                                     yield return new WaitForSeconds(0.2f);
                                     anim.SetBool(hashidle, true);
                                     anim.SetBool(hashAttack2, false);
                                     //anim.SetBool(hashWalkingAttack, false);
                                     anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
 
                                 case 2:
@@ -256,7 +222,7 @@ public class EliteMonster : Monster
                                     anim.SetBool(hashAttack3, false);
                                     //anim.SetBool(hashWalkingAttack, false);
                                     anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
                             }
                             break;
@@ -276,7 +242,7 @@ public class EliteMonster : Monster
                                     anim.SetBool(hashAttack, false);
                                     //anim.SetBool(hashWalkingAttack, false);
                                     //anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
 
                                 case 1:
@@ -287,7 +253,7 @@ public class EliteMonster : Monster
                                     anim.SetBool(hashAttack2, false);
                                     //anim.SetBool(hashWalkingAttack, false);
                                     //anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
 
                                 case 2:
@@ -298,7 +264,7 @@ public class EliteMonster : Monster
                                     anim.SetBool(hashAttack3, false);
                                     //anim.SetBool(hashWalkingAttack, false);
                                     anim.SetBool(hashRun, false);
-                                    yield return new WaitForSeconds(0.3f);
+                                    yield return new WaitForSeconds(attDelay);
                                     break;
                             }
                             break;
@@ -311,7 +277,8 @@ public class EliteMonster : Monster
                     nav.isStopped = true;
                     //GFunc.Log("nav.isStopped: " + nav.isStopped);
                     anim.SetTrigger(hashDie);
-                    Invoke(nameof(DieAnimation), 2.0f);
+                    AudioManager.Instance.PlaySFX(dieSound);
+                    Invoke(nameof(MonsterDestroy), 3.0f);
                     foreach (CapsuleCollider capsuleCollider in capsuleColliders)
                     {
                         capsuleCollider.isTrigger = true;
@@ -327,90 +294,76 @@ public class EliteMonster : Monster
 
     }
 
-    public void DieAnimation()
+
+    public void MonsterDestroy()
     {
         Destroy(this.gameObject);
     }
 
-    public override void OnDeal(float damage)
+    public override void MonsterKnockBack()
     {
-        // 죽지 않은 상태면 HP 바 업데이트
-        if (damageable.Health > 0)
+        rigid.WakeUp();
+
+        if (rigid != null)
         {
-            SetHealth(damageable.Health);
-        }
-        else
-            return;
+            Vector3 knockbackDirection = -transform.forward * 3.0f;
+            rigid.AddForce(knockbackDirection, ForceMode.Impulse);
 
-        Debug.Log($"체력:{damageable.Health}");
+            AudioManager.Instance.PlaySFX(knockbackSound);
 
-        // 스턴 상태 또는 죽음 상태일 경우 리턴
-        if (state == State.STUN || state == State.DIE)
-            return;
+            // 몬스터와 머리가 함께 뒤로 이동하도록 처리
+            MoveWithSmoothTransition(transform.position + knockbackDirection);
 
-        MonsterStun();  // 몬스터 스턴
+            // 몬스터 머리에 이펙트 생성
+            Vector3 headPosition = transform.position + Vector3.up * headHeight;
+            GameObject instantKnockbackHead = Instantiate(knockBackHeadEffect, headPosition, Quaternion.Euler(-90, 0, 0));
+            Destroy(instantKnockbackHead, 1.2f);
 
-        smashCount++;   // 분쇄 카운트 추가
+            // 몬스터 머리에 생성된 이펙트를 몬스터 머리와 함께 따라가도록 처리
+            instantKnockbackHead.transform.parent = transform;
 
-        if (smashCount >= smashMaxCount)
-        {
-            smash.SetActive(true);
-            GFunc.Log("분쇄카운트 충족");
+            //몬스터 벽 인식
+            Vector3 overlapSphereCenter = this.transform.position - transform.forward * 2f;
+            overlapSphereCenter.z += 1.5f;
 
-            smashCount = 0;
-            //GFunc.Log($"분쇄 카운트:{smashCount}");
 
-            smashFilled.fillAmount = 1;
-            //GFunc.Log($"분쇄FillAmount:{smashFilled.fillAmount}");
-
-            StartCoroutine(SmashTime());
-
-            if (countNum <= 3)
+            if (monsterType == Type.BEAST_QUEENWORM)
             {
-                smashCountNum.text = countNum.ToString();
-                countNum++;
-                Debug.Log($"숫자:{countNum}");
-            }
-            else if (countNum == 5)
-            {
-
+                overlapSphereCenter = this.transform.position - transform.forward * 2f;
+                overlapSphereCenter.z -= 0.5f;
             }
 
-            GFunc.Log($"숫자:{countNum}");
+            Collider[] colliders = Physics.OverlapSphere(overlapSphereCenter, damageRadius);
 
-            ApplyStackDamage(damage);
-
-            //넉백
-            count++;
-
-            if (count >= maxCount)
+            foreach (Collider collider in colliders)
             {
-                count = 0;
-                anim.SetTrigger(hashStun);
-
-                Vector3 targetPosition = transform.position - transform.forward * 4.0f;
-
-                MoveWithSmoothTransition(targetPosition);
+                if (collider.CompareTag("Wall"))
+                {
+                    return;
+                }
             }
         }
     }
-    // 스턴 딜레이
-    public override IEnumerator StunDelay()
+
+    public override void OnDrawGizmos()
     {
-        isStun = true;
-        anim.SetTrigger(hashHit);
-        damageable.stun = true;
-        yield return new WaitForSeconds(stunDelay);
-        isStun = false;
-        damageable.stun = false;
-        yield break;
+        Vector3 overlapSphereCenter = this.transform.position - transform.forward * 2f;
+        overlapSphereCenter.z += 1.5f;
+
+        if (monsterType == Type.BEAST_QUEENWORM)
+        {
+            overlapSphereCenter = this.transform.position - transform.forward * 2f;
+            overlapSphereCenter.z -= 0.5f;
+        }
+
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(overlapSphereCenter, damageRadius);
     }
 
-    
 
     public void GolemShoot(int index)
     {
-        switch(index)
+        switch (index)
         {
             case 0:
                 GameObject instantBulletLeft = Instantiate(monsterBulletPrefab, bulletPortLeft.position, bulletPortLeft.rotation);
@@ -418,49 +371,67 @@ public class EliteMonster : Monster
                 bulletPortRight.transform.LookAt(playerTr.position);
                 //instantBulletLeft.transform.LookAt(playerTr);
 
-                GameObject instantBulletRight = Instantiate(monsterBulletPrefab, bulletPortRight.position, bulletPortLeft.rotation);
+                GameObject instantLeft = Instantiate(FireEffect, bulletPortLeft.position, bulletPortLeft.rotation);
+                GFunc.Log($"이펙트 발생:{instantLeft}");
+
+                GameObject instantBulletRight = Instantiate(monsterBulletPrefab, bulletPortRight.position, bulletPortRight.rotation);
                 //MonsterBullet bulletRight = instantBulletRight.GetComponent<MonsterBullet>();
                 bulletPortRight.transform.LookAt(playerTr.position);
                 //instantBulletRight.transform.LookAt(playerTr);
+
+                GameObject instantRight = Instantiate(FireEffect, bulletPortRight.position, bulletPortRight.rotation);
+                GFunc.Log($"이펙트 발생:{instantRight}");
+
+                AudioManager.Instance.PlaySFX(attackSound);
+
                 break;
         }
     }
 
     public void Shoot(int index)
     {
-        switch(index)
+        switch (index)
         {
             case 0:
                 GameObject instantBullet = Instantiate(monsterBulletPrefab, bulletPort.position, bulletPort.rotation);
                 MonsterBullet bullet = instantBullet.GetComponent<MonsterBullet>();
                 bulletPort.transform.LookAt(playerTr.position);
                 //instantBullet.transform.LookAt(playerTr);
+
+                GameObject instantFire = Instantiate(FireEffect, bulletPort.position, bulletPort.rotation);
+                GFunc.Log($"이펙트 발생:{instantFire}");
+
+                AudioManager.Instance.PlaySFX(attackSound);
+
                 break;
 
-                case 1:
+            case 1:
                 GameObject instantBulletRight = Instantiate(monsterBulletPrefab, bulletPortRight.position, bulletPortRight.rotation);
                 MonsterBullet bulletRight = instantBulletRight.GetComponent<MonsterBullet>();
                 bulletPortRight.transform.LookAt(playerTr.position);
                 //instantBulletRight.transform.LookAt(playerTr);
+
+                GameObject instantFireRight = Instantiate(FireEffect, bulletPortRight.position, bulletPortRight.rotation);
+                GFunc.Log($"이펙트 발생:{instantFireRight}");
+
+                AudioManager.Instance.PlaySFX(attackSound);
+
                 break;
 
-                case 2:
+            case 2:
                 GameObject instantBulletLeft = Instantiate(monsterBulletPrefab, bulletPortLeft.position, bulletPortLeft.rotation);
                 MonsterBullet bulletLeft = instantBulletLeft.GetComponent<MonsterBullet>();
                 bulletPortRight.transform.LookAt(playerTr.position);
                 //instantBulletLeft.transform.LookAt(playerTr);
+
+                GameObject instantFireLeft = Instantiate(FireEffect, bulletPortLeft.position, bulletPortLeft.rotation);
+                GFunc.Log($"이펙트 발생:{instantFireLeft}");
+
+                AudioManager.Instance.PlaySFX(attackSound);
+
                 break;
         }
     }
 
-    public override void Explosion(int index)
-    {
-        switch(index)
-        {
-            case 0:
-                Destroy(this.gameObject);
-                break;
-        }
-        
-    }
+
 }

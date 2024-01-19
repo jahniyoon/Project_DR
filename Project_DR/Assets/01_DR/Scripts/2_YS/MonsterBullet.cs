@@ -23,6 +23,12 @@ public class MonsterBullet : MonoBehaviour
     public float speed = default;
     public float damage = default;
 
+    [Header("사운드")]
+    public string explosionSound = default;
+
+    [Header("투사체 폭발 이펙트")]
+    public GameObject explosionEffect;
+
     void Awake()
     {
         GetData(ProjectileID);
@@ -35,11 +41,13 @@ public class MonsterBullet : MonoBehaviour
         damageCollider = GetComponent<DamageCollider>();
         rigid = GetComponent<Rigidbody>();
 
+        AudioManager.Instance.AddSFX(explosionSound);
+
         transform.LookAt(target.position);
 
         rigid.velocity = transform.forward * speed;
 
-        damageCollider.Damage = damage;
+        damageCollider.SetDamage(damage);
     }
 
     private void Update()
@@ -63,11 +71,20 @@ public class MonsterBullet : MonoBehaviour
                 {
                     // 데미지를 처리하거나 플레이어 스크립트에 데미지를 전달
                     collider.GetComponent<Damageable>().DealDamage(damage);
-                    GFunc.Log($"데미지:{damage}");
+                    //GFunc.Log($"데미지:{damage}");
+                    GameObject instantExplosion = Instantiate(explosionEffect, transform.position, Quaternion.identity);
+                    Destroy(instantExplosion, 2.0f);
+
+                    AudioManager.Instance.PlaySFX(explosionSound);
 
                     isDamage = true;
                     Destroy(this.gameObject);
                     break;
+                }
+
+                if(collider.CompareTag("Wall"))
+                {
+                    Destroy(this.gameObject);
                 }
 
             }
@@ -78,7 +95,7 @@ public class MonsterBullet : MonoBehaviour
             if (collider.CompareTag("Wall"))
             {
                 Destroy(this.gameObject);
-                GFunc.Log("벽이나 바닥 만났을 때 파괴되는가");
+                //GFunc.Log("벽이나 바닥 만났을 때 파괴되는가");
             }
         }
 
@@ -91,6 +108,7 @@ public class MonsterBullet : MonoBehaviour
     {
         speed = (float)DataManager.Instance.GetData(ProjectileID, "MonSpd", typeof(float));
         damage = (float)DataManager.Instance.GetData(ProjectileID, "MonAtt", typeof(float));
+        explosionSound = Data.GetString(ProjectileID, "ExpSnd");
     }
 
 

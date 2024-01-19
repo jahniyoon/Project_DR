@@ -43,7 +43,7 @@ public class NPCManager : MonoBehaviour
     {
         _maxProbability += 1;       // Range의 마지막은 제외되기 때문에 내부에서 1을 더해주고 돌릴것임        
 
-        int randValue = UnityEngine.Random.Range(_minProbability, _maxProbability);
+        int randValue = Random.Range(_minProbability, _maxProbability);
 
         if (_getProbability < randValue)
         {
@@ -76,9 +76,8 @@ public class NPCManager : MonoBehaviour
             stringBuilder.Append(reward);
             stringBuilder.Append(i.ToString());
             stringBuilder.Append(keyId);
-
-            int rewardKeyId = 0;
-            rewardKeyId = Data.GetInt(_rewardId, stringBuilder.ToString());
+             
+            int rewardKeyId = Data.GetInt(_rewardId, stringBuilder.ToString());
 
             if (rewardKeyId != 0)
             {
@@ -109,9 +108,8 @@ public class NPCManager : MonoBehaviour
             stringBuilder.Append(reward);
             stringBuilder.Append(i.ToString());
             stringBuilder.Append(amount);
-
-            int rewardAmount = 0;
-            rewardAmount = Data.GetInt(_rewardId, stringBuilder.ToString());
+            
+            int rewardAmount = Data.GetInt(_rewardId, stringBuilder.ToString());
 
             if (rewardAmount != 0)
             {
@@ -142,9 +140,8 @@ public class NPCManager : MonoBehaviour
             stringBuilder.Append(reward);
             stringBuilder.Append(i.ToString());
             stringBuilder.Append(probability);
-
-            int rewardProbability = 0;
-            rewardProbability = Data.GetInt(_rewardId, stringBuilder.ToString());
+             
+            int rewardProbability = Data.GetInt(_rewardId, stringBuilder.ToString());
 
             if (rewardProbability != 0)
             {

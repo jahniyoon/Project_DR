@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Js.Quest;
 using Js.Crafting;
+using BNG;
 
 public static class UserData
 {
@@ -26,6 +27,7 @@ public static class UserData
     public static void AddGold(int value)
     {
         UserDataManager.Instance.Gold += value;
+        AudioManager.Instance.PlaySFX("SFX_Item_Gold_Gain_01");
     }
     /// <summary>골드를 소모하는 메서드 </summary>
     public static void SpendGold(int value)
@@ -103,7 +105,11 @@ public static class UserData
             questGold += result.quest[i].gold;
         }
 
-        return monsterGold + itemGold + questGold;
+        int totalGold = monsterGold + itemGold + questGold;
+
+        int additionalGold = Mathf.RoundToInt(totalGold * UserDataManager.Instance.GainGold);   // 추가 골드 더하기
+
+        return totalGold + additionalGold;
     }
 
     /// <summary>획득한 모든 골드를 계산해주는 메서드 </summary>
@@ -125,8 +131,28 @@ public static class UserData
             questExp += result.quest[i].exp;
         }
 
-        return monsterExp + itemExp + questExp;
+        int totalExp = monsterExp + itemExp + questExp;
+
+        int additionalExp = Mathf.RoundToInt(totalExp * UserDataManager.Instance.GainExp);   // 추가 경험치 더하기
+
+        return totalExp + additionalExp;
     }
+    // 남은 재료 아이템을 계산해주는메서드
+    public static void MaterialItemCalculator() 
+    {
+        List<(int, int)> itemList = Unit.GetInventoryMaterialItems();
+        for (int i = 0; i < itemList.Count; i++)
+        {
+            int itemID = itemList[i].Item1;
+            int itemAmount = itemList[i].Item2;
+            //GFunc.Log($"ID: {itemID} / Amount: {itemAmount}");
+            for (int j = 0; j < itemAmount; j++)
+            {
+                UserData.AddItemScore(itemID);
+            }
+        }
+    }
+
 
     public static void ResetResult()
     {
@@ -161,18 +187,36 @@ public static class UserData
     {
         UserDataManager.Instance.CurHP -= damage;
     }
+    public static void SetCurHealth(float health)
+    {
+        UserDataManager.Instance.CurHP = health;
+    }
 
     /// <summary> 플레이어의 현재 체력을 증감 </summary>
     public static void SetCurrentHealth(float amount)
     {
-        // amount는 양수/음수 둘 중 하나의 값을 받는다.
-        UserDataManager.Instance.CurHP += amount;
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if(player == null)
+        {
+            GFunc.Log("플레이어 찾을 수 없음");
+            return; 
+        }
+
+        if(0 < amount)
+        {
+            player.GetComponent<PlayerHealth>().RestoreHealth(amount);
+        }
+
+        else if(amount < 0)
+        {
+            player.GetComponent<Damageable>().DealDamage(amount);
+        }
     }
 
     // 해당 ID의 스킬을 호출한다.
-    public static void ActiveSkill(int id)
+    public static void ActiveSkill(int id, float _value = 0)
     {
-        SkillManager.instance.ActiveSkill(id);
+        SkillManager.instance.ActiveSkill(id, value : _value);
     }
 
     #endregion
@@ -227,7 +271,7 @@ public static class UserData
         float attackSpeed = Data.GetFloat(1100, "AttackSpeed");
         if (UserDataManager.Instance.WeaponAtkRateLv != 0)
         {
-            attackSpeed = attackSpeed - UserDataManager.Instance.statData.upgradeAtkSpd[UserDataManager.Instance.WeaponAtkRateLv - 1].sum1;
+            attackSpeed = attackSpeed + UserDataManager.Instance.statData.upgradeAtkSpd[UserDataManager.Instance.WeaponAtkRateLv - 1].sum1;
         }
         return attackSpeed + UserDataManager.Instance.effectAttackRate;
     }
@@ -446,7 +490,6 @@ public static class UserData
             UserDataManager.Instance.drillLandingCount = 0;
         }
     }
-
     #endregion
 
     #region ####################_Quest_#####################
@@ -499,11 +542,14 @@ public static class UserData
     }
     public static void GameOver()
     {
+        MaterialItemCalculator();                            // 재료 아이템 정산
+        Unit.SaveQuestDataToDB();
         UserDataManager.Instance.isGameOver = true;
     }
-
+    // 클리어 던전
     public static void ClearDungeon()
     {
+        MaterialItemCalculator();                            // 재료 아이템 정산
         Unit.SaveQuestDataToDB();
         UserDataManager.Instance.SaveClearData();
         UserDataManager.Instance.isClear = true;

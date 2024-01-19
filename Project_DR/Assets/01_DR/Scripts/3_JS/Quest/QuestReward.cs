@@ -18,6 +18,7 @@ namespace Js.Quest
         private QuestRewardData _questRewardData;
         private Quest _quest;
 
+
         /*************************************************
          *                 Public Methods
          *************************************************/
@@ -40,6 +41,10 @@ namespace Js.Quest
 
             // 퀘스트 타입에 따른 보상 획득
             GetQuestRewardByType();
+
+            // 효과음 재생
+            AudioManager.Instance.AddSFX("SFX_Quest_UI_Reward_01");
+            AudioManager.Instance.PlaySFX("SFX_Quest_UI_Reward_01");
         }
 
 
@@ -58,7 +63,7 @@ namespace Js.Quest
                     GetRewardItem();
                     break;
 
-                // "아이템" 일 경우
+                // "MBTI" 일 경우
                 case QuestRewardData.TypeReward.MBTI:
                     // 퀘스트 보상 MBTI 획득
                     GetRewardMBTI();
@@ -104,13 +109,31 @@ namespace Js.Quest
             MBTI mbti = new MBTI();
             float[] values = _questRewardData.MBTIValues;
             mbti.SetMBTI(values[0], values[1], values[2], values[3]);
-            MBTIManager.Instance.ResultMBTI(mbti);
+            MBTIManager.Instance?.ResultMBTI(mbti);
         }
 
         // 퀘스트 보상 상태 획득
         private void GetRewardState()
         {
             // TODO: 퀘스트 상태 보상 구현하기
+            // 보상 아이템(1 ~ 4) 지급
+            for (int i = 0; i < _questRewardData.RewardKeyIDs.Length; i++)
+            {
+                int keyID = _questRewardData.RewardKeyIDs[i];
+                int probability = _questRewardData.RewardProbabilitys[i];
+                // 보상 상태(1 ~ 4) 획득
+                GetRewardState(keyID, probability);
+            }
+        }
+
+        // 퀘스트 보상 상태 획득
+        private void GetRewardState(int keyID, int probability)
+        {
+            // 키 ID가 0이 아닐 경우 && 지정 확률 성공시
+            if (!keyID.Equals(0) && GetRandomProbability(probability))
+            {
+                UserData.ActiveSkill(keyID);
+            }
         }
 
         // 랜덤 확률 돌리기

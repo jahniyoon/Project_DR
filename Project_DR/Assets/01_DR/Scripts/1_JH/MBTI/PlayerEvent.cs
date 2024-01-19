@@ -1,4 +1,5 @@
 using BNG;
+using Js.Crafting;
 using Rito.InventorySystem;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,6 +8,10 @@ using UnityEngine;
 public class PlayerEvent : MonoBehaviour
 {
 
+    private void Start()
+    {
+        AudioManager.Instance.AddSFX("SFX_Shop_Purchase_01");
+    }
     // 그랩한 아이템을 체크하는 이벤트
     public void GrabCheck(Grabbable grabItem)
     {
@@ -44,6 +49,9 @@ public class PlayerEvent : MonoBehaviour
 
         // 상점 아이템일 경우 이벤트 실행
         ShopItemSlotEvent(grabItem);
+
+        // 크래프팅 인벤토리 상자일 경우 이벤트 실행
+        CraftingChestEvent(grabItem);
     }
 
 
@@ -72,6 +80,7 @@ public class PlayerEvent : MonoBehaviour
     }
 
     // 아이템 슬롯 관련 이벤트
+
     private void ItemSlotEvent(Grabbable grabItem)
     {
         // 아이템 슬롯인지 확인
@@ -92,7 +101,22 @@ public class PlayerEvent : MonoBehaviour
             ///
             // 인벤토리 참조
             Inventory inventory = grabItem.GetComponent<ItemSlotController>().Inventory;
-            int slotIndex = grabItem.GetComponent<ItemSlotController>().Index; // 슬롯 인덱스
+            // 아이템 슬롯이 Inventory일 경우
+            int slotIndex = default;
+            if (grabItem.CompareTag("Inventory"))
+            {
+                slotIndex = grabItem.GetComponent<ItemSlotController>().Index; // 슬롯 인덱스
+                GFunc.Log("Inventory ItemSlot");
+            }
+
+            // 플레이어 인벤토리일 경우
+            else if (grabItem.CompareTag("PlayerInventory"))
+            {
+                slotIndex = grabItem.GetComponent<ItemSlotController>().ItemIndex; // 슬롯 보유 아이템 인덱스
+                GFunc.Log("PlayerInventory ItemSlot");
+
+            }
+
             // 슬롯이 비어있을 경우
             if (inventory.HasItem(slotIndex) == false)
             {
@@ -147,12 +171,14 @@ public class PlayerEvent : MonoBehaviour
             // 아이템 구매 처리(골드 차감)
             if (shopItemPurchaseHandler.CheckAndDeductGoldForItemPurchase(shopItemID))
             {
+                AudioManager.Instance.PlaySFX("SFX_Shop_Purchase_01");
+
                 GFunc.Log("구매했슴당");
                 // 아이템일 경우
                 if (shopItem.IsItem)
                 {
-                    GameObject item = ItemManager.instance.CreateItem(grabber.transform.position,
-                        itemID);
+                    GFunc.Log(itemID);
+                    GameObject item = Unit.AddShopItem(grabber.transform.position, itemID);
                     ItemColliderHandler itemColliderHandler = item.GetComponent<ItemColliderHandler>();
                     itemColliderHandler.state = ItemColliderHandler.State.STOP;
 
@@ -182,6 +208,20 @@ public class PlayerEvent : MonoBehaviour
             {
                 GFunc.Log("돈이 업슴당");
             }
+        }
+    }
+
+    // 크래프팅 상자 이벤트
+    public void CraftingChestEvent(Grabbable grabItem)
+    {
+        InventoryChest inventoryChest = 
+            grabItem.GetComponent<InventoryChest>();
+        // 크래프팅 인벤토리 상자일 경우
+        if (inventoryChest != null)
+        {
+            // 상자 초기화 & 토글
+            inventoryChest.Initialize(gameObject);
+            inventoryChest.ToggleChest();
         }
     }
 }

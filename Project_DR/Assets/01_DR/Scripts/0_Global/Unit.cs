@@ -4,10 +4,54 @@ using UnityEngine;
 using Js.Quest;
 using Rito.InventorySystem;
 using Js.Crafting;
+using Js.Boss;
 
 // 플레이어에게 특정한 명령을 실행하는 클래스
 public static class Unit
 {
+    /*************************************************
+     *          Public Boss Monster Methods
+     *************************************************/
+    public static GameObject CreateBossMonster(int id, Vector3 pos)
+    {
+        return BossMonsterManager.Instance.CreateBossMonster(id, pos);
+    }
+
+
+    /*************************************************
+     *           Public Player HUD Methods
+     *************************************************/
+    // 플레이어 화면에 리워드 보상 HUD 텍스트 출력
+    public static void PrintRewardText(params int[] ids)
+    {
+        UserDataManager.Instance.GetQuestRewardText().PrintText(ids);
+    }
+
+
+    /*************************************************
+     *       Public Inventory Items Get Methods
+     *************************************************/
+    public static List<(int, int)> GetInventoryMaterialItems()
+    {
+        List<(int,int)> itemList = new List<(int, int)>();
+        Item[] tempItems = UserDataManager.items;
+
+        for (int i = 0; i < tempItems.Length; i++)
+        {
+            // 재료 아이템일 경우
+            if (tempItems[i] is Rito.InventorySystem.MaterialItem)
+            {
+                int itemID = tempItems[i].Data.ID;
+                int amount = (tempItems[i] as CountableItem).Amount;
+                // 리스트에 추가
+                itemList.Add((itemID, amount));
+            }
+        }
+
+        return itemList;
+    }
+
+
     /*************************************************
      *         Public Inventory & Item Methods
      *************************************************/
@@ -21,6 +65,12 @@ public static class Unit
     public static GameObject AddFieldItem(Vector3 pos, int id, int amount = 1)
     {
         return ItemManager.instance.CreateItem(pos, id, amount);
+    }
+
+    // 상점용 아이템을 생성(UseItem 없이 생성)
+    public static GameObject AddShopItem(Vector3 pos, int id, int amount = 1)
+    {
+        return ItemManager.instance.CreateShopItem(pos, id, amount);
     }
 
     // 모루 위에 크래프팅 아이템을 생성

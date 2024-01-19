@@ -97,7 +97,7 @@ namespace Js.Quest
         // 데이터 테이블에 있는 퀘스트를 가져와서 생성
         public void CreateQuestFromDataTable()
         {
-            GFunc.Log("CreateQuestFromDataTable()");
+            //GFunc.Log("CreateQuestFromDataTable()");
 
             // 퀘스트 리스트를 초기화
             UserDataManager.ResetQuestList();
@@ -148,6 +148,7 @@ namespace Js.Quest
         // 단 선행퀘스트 조건을 충족해야 변경된다.
         public void UpdateQuestStatesToCanStartable()
         {
+            GFunc.Log("UpdateQuestStatesToCanStartable()");
             foreach (var item in QuestList)
             {
                 // 상태가 [시작불가]일 경우
@@ -303,22 +304,18 @@ namespace Js.Quest
             // json으로 변환된 string은 .NET Framework 디코딩이 필요
             string json = System.Web.HttpUtility.UrlDecode(PlayerDataManager.QuestMain);
 
-            GFunc.Log($"구조화된 데이터: {json}");
+            //GFunc.Log($"디코딩된 데이터: {json}");
 
             // 데이터가 비어있을 경우 예외처리
             // 퀘스트 전체 상태만 업데이트 [시작불가] -> [시작가능]
-            if (json.Equals(""))
+            if (! json.Equals(""))
             {
-                // 조건 충족시 [시작가능]으로 상태 변경
-                UpdateQuestStatesToCanStartable();
-                return; 
+                QuestSaveDatas questSaveDatas = JsonUtility.FromJson<QuestSaveDatas>(json);
+
+                // QuestSaveDatas에 있는 데이터를 UserDataManager의 퀘스트 목록으로 전달
+                // 보유한 퀘스트의 상태 와 진행 값을 변경한다.
+                UpdateUserDataFromQuestSaveDatas(questSaveDatas);
             }
-
-            QuestSaveDatas questSaveDatas = JsonUtility.FromJson<QuestSaveDatas>(json);
-
-            // QuestSaveDatas에 있는 데이터를 UserDataManager의 퀘스트 목록으로 전달
-            // 보유한 퀘스트의 상태 와 진행 값을 변경한다.
-            UpdateUserDataFromQuestSaveDatas(questSaveDatas);
 
             // 퀘스트의 상태를 업데이트 한다
             // 조건 충족시 [시작불가] -> [시작가능]으로 변경
